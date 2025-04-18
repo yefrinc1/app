@@ -17,6 +17,7 @@ class VentasController extends Controller
         $cliente = $request->input('cliente');
         $correo = $request->input('correo');
         $fecha = $request->input('fecha');
+        $mensajeEdit = $request->input('mensaje_edit', '');
     
         // Si no hay ningún filtro, no hacemos la consulta
         if (!$juego && !$cliente && !$correo && !$fecha) {
@@ -46,6 +47,7 @@ class VentasController extends Controller
     
         return Inertia::render('Ventas/Index', [
             'resultado_consulta' => $resultadoConsulta,
+            'mensaje_edit' => $mensajeEdit,
             'filtros' => [
                 'juego' => $juego,
                 'cliente' => $cliente,
@@ -231,6 +233,33 @@ class VentasController extends Controller
         }
 
         return redirect()->route('ventas.create', ['cuenta_juego' => $cuentaJuego]);
+    }
+
+    public function edit(string $id)
+    {
+        $venta = Ventas::findOrFail($id);
+        return Inertia::render('Ventas/Edit', ["venta" => $venta]);
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $venta = Ventas::findOrFail($id);
+
+        $validatedData = $request->validate([
+            'cliente' => 'required',
+            'medio_pago' => 'required',
+            'precio' => 'required',
+        ]);
+
+        $venta->update([
+            'cliente' => $validatedData['cliente'],
+            'medio_pago' => $validatedData['medio_pago'],
+            'precio' => $validatedData['precio'],
+        ]);
+
+        $mensajeEdit = "Se edito correctamente la venta";
+
+        return Inertia::render('Ventas/Index', ['mensaje_edit' => $mensajeEdit]);
     }
 
     public function comprobarExistenciaJuego($tipo_cuenta, $consola, $juego)

@@ -2,18 +2,32 @@
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { defineProps } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import { useForm, Head, Link } from '@inertiajs/vue3';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import { ref, watch } from "vue";
 import axios from "axios";
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     modelValue: String,
     resultado_consulta: Object,
     filtros: Object,
+    mensaje_edit: String,
 });
+
+const swalWithTailwind = Swal.mixin({
+    buttonsStyling: true
+});
+
+if (props.mensaje_edit != '') {
+    swalWithTailwind.fire({
+        title: props.mensaje_edit,
+        icon: 'success',
+    })
+}
 
 const form = useForm({
     juego: "",
@@ -223,10 +237,11 @@ const seleccionarJuego = async (nombreJuego) => {
                                     <th class="px-4 py-2 text-left">Juego</th>
                                     <th class="px-4 py-2 text-left">Correo</th>
                                     <th class="px-4 py-2 text-left">Cliente</th>
-                                    <th class="px-4 py-2 text-center">Cuenta</th>
-                                    <th class="px-4 py-2 text-center">Consola</th>
-                                    <th class="px-4 py-2 text-center">Forma Pago</th>
-                                    <th class="px-4 py-2 text-center">Valor</th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
+                                    <th class="px-4 py-2 text-left">Consola</th>
+                                    <th class="px-4 py-2 text-left">Forma Pago</th>
+                                    <th class="px-4 py-2 text-left">Valor</th>
+                                    <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -240,6 +255,13 @@ const seleccionarJuego = async (nombreJuego) => {
                                     <td class="px-4 py-2">{{ venta.consola }}</td>
                                     <td class="px-4 py-2">{{ venta.medio_pago }}</td>
                                     <td class="px-4 py-2">{{ venta.precio }}</td>
+                                    <td class="px-4 py-2 flex justify-center space-x-2">
+                                        <Link :href="route('ventas.edit', venta.id)">
+                                            <SecondaryButton>
+                                                <i class="fa-solid fa-user-pen"></i>
+                                            </SecondaryButton>
+                                        </Link>
+                                    </td>
                                 </tr>
                                 <!-- Si no hay datos en la consulta -->
                                 <tr v-if="resultado_consulta.length === 0">

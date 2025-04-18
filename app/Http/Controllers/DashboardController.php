@@ -70,8 +70,8 @@ class DashboardController extends Controller
             'ingresos' => intval($ingresosTotalesMes),
             'egresos' => intval($sumaEgresosMes),
             'diferencia' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
-            'margen_ganancia' => $margenGananciaMes,
-            'roi' => $roiMes,
+            'margen_ganancia' => round($margenGananciaMes, 2),
+            'roi' => round($roiMes, 2),
         ];
 
         // Total de ventas (sin importar la fecha)
@@ -95,8 +95,8 @@ class DashboardController extends Controller
             'ingresos' => intval($ingresosTotal),
             'egresos' => intval($sumaEgresos),
             'diferencia' => intval(($sumaIngresos + $movimientoIngreso) - $sumaEgresos),
-            'margen_ganancia' => $margenGananciaTotal,
-            'roi' => $roiTotal,
+            'margen_ganancia' => round($margenGananciaTotal, 2),
+            'roi' => round($roiTotal, 2),
         ];
 
         return Inertia::render('Dashboard', [
