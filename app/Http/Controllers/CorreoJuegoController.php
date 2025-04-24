@@ -180,52 +180,64 @@ class CorreoJuegoController extends Controller
             'contrasena' => 'required|string|min:6',
             'fecha_nacimiento' => 'required',
             'juego' => 'required',
-            'precio_usd' => 'required',
         ]);
 
         $correoJuego = CorreoJuego::findOrFail($id);
-        $correoMadre = CorreoMadre::findOrFail($correoJuego->id_correo_madre);
-        $saldoNuevoMadreUSD = $correoJuego->precio_usd + $correoMadre->saldo_usd;
-        $saldoNuevoMadreCOP = $correoJuego->precio_cop + $correoMadre->saldo_cop;
+        $correoMadre = CorreoMadre::find($correoJuego->id_correo_madre);
 
-        if ($saldoNuevoMadreUSD >= $request->precio_usd) {
-            $saldoRestanteUSD = $saldoNuevoMadreUSD - $request->precio_usd;
-            $precioDolar = $saldoNuevoMadreCOP / $saldoNuevoMadreUSD;
-            $precioCOP = $request->precio_usd * $precioDolar;
-            $saldoRestanteCOP = $saldoNuevoMadreCOP - $precioCOP;
-            $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
-
+        if ($correoMadre) {
+            $saldoNuevoMadreUSD = $correoJuego->precio_usd + $correoMadre->saldo_usd;
+            $saldoNuevoMadreCOP = $correoJuego->precio_cop + $correoMadre->saldo_cop;
+    
+            if ($saldoNuevoMadreUSD >= $request->precio_usd) {
+                $saldoRestanteUSD = $saldoNuevoMadreUSD - $request->precio_usd;
+                $precioDolar = $saldoNuevoMadreCOP / $saldoNuevoMadreUSD;
+                $precioCOP = $request->precio_usd * $precioDolar;
+                $saldoRestanteCOP = $saldoNuevoMadreCOP - $precioCOP;
+                $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
+    
+                $correoJuego->update([
+                    'contrasena' => $request->contrasena,
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'juego' => $request->juego,
+                    'precio_usd' => $request->precio_usd,
+                    'precio_cop' => $precioCOP,
+                    'disponible' => $request->disponible ? 1 : 0,
+                ]);
+    
+                $mensaje = "Se actualizo correctamente el juego";
+                $icon_mensaje = 'success';
+            } else {
+                $mensaje = "No fue posible actualizar el juego, la cuenta madre solo tiene $saldoNuevoMadreUSD USD de saldo";
+                $icon_mensaje = 'error';
+            }
+        } else {
             $correoJuego->update([
                 'contrasena' => $request->contrasena,
                 'fecha_nacimiento' => $request->fecha_nacimiento,
                 'juego' => $request->juego,
-                'precio_usd' => $request->precio_usd,
-                'precio_cop' => $precioCOP,
                 'disponible' => $request->disponible ? 1 : 0,
             ]);
 
             $mensaje = "Se actualizo correctamente el juego";
             $icon_mensaje = 'success';
+        }
 
-            if (trim($request->codigo) != '') {
-                $codigos = CodigoVerificacion::separarCodigos($request->codigo);
-    
-                $codigoRespaldo = 1;
-                foreach ($codigos as $clave => $codigo) {
-                    if ($clave > 1) {
-                        $codigoRespaldo = 0;
-                    }
-                    
-                    CodigoVerificacion::create([
-                        'codigo' => $codigo,
-                        'id_correo_juego' => $correoJuego->id,
-                        'respaldo' => $codigoRespaldo,
-                    ]);
+        if (trim($request->codigo) != '') {
+            $codigos = CodigoVerificacion::separarCodigos($request->codigo);
+
+            $codigoRespaldo = 1;
+            foreach ($codigos as $clave => $codigo) {
+                if ($clave > 1) {
+                    $codigoRespaldo = 0;
                 }
+                
+                CodigoVerificacion::create([
+                    'codigo' => $codigo,
+                    'id_correo_juego' => $correoJuego->id,
+                    'respaldo' => $codigoRespaldo,
+                ]);
             }
-        } else {
-            $mensaje = "No fue posible actualizar el juego, la cuenta madre solo tiene $saldoNuevoMadreUSD USD de saldo";
-            $icon_mensaje = 'error';
         }
 
         return redirect()->route('correo-juegos.index', ['mensaje_correo_creado' => $mensaje, 'icon_mensaje' => $icon_mensaje]);
