@@ -31,7 +31,7 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     📊 {{ $t('Dashboard') }}
                                 </NavLink>
-                                <DropDownMenu v-if="$page.props.auth.user.id == 1" align="right" width="48">
+                                <DropDownMenu   align="right" width="48">
                                     <template #trigger>
                                         ✉️ Correos
                                     </template>
@@ -49,7 +49,7 @@ const showingNavigationDropdown = ref(false);
                                     </template>
                                     <template #content>
                                         <DropdownLink :href="route('codigo-verificacion.generar')"> 🪄 Generar </DropdownLink>
-                                        <DropdownLink v-if="$page.props.auth.user.id == 1" :href="route('codigo-verificacion.create')"> 🔨 Crear </DropdownLink>
+                                        <DropdownLink :href="route('codigo-verificacion.create')"> 🔨 Crear </DropdownLink>
                                     </template>
                                 </DropDownMenu>
                                 <DropDownMenu align="right" width="48">
@@ -58,7 +58,7 @@ const showingNavigationDropdown = ref(false);
                                     </template>
                                     <template #content>
                                         <DropdownLink :href="route('ventas.create')"> 💸 Venta de Juego </DropdownLink>
-                                        <DropdownLink v-if="$page.props.auth.user.id == 1" :href="route('movimientos.index')"> 🔄 Movimientos </DropdownLink>
+                                        <DropdownLink :href="route('movimientos.index')"> 🔄 Movimientos </DropdownLink>
                                         <DropdownLink :href="route('cierre-caja.create')">🎰 Cerrar Caja </DropdownLink>
                                     </template>
                                 </DropDownMenu>
@@ -67,7 +67,7 @@ const showingNavigationDropdown = ref(false);
                                         🔍 Consultar
                                     </template>
                                     <template #content>
-                                        <DropdownLink v-if="$page.props.auth.user.id == 1" :href="route('codigo-verificacion.index')"> 🔒 Codigos VF </DropdownLink>
+                                        <DropdownLink :href="route('codigo-verificacion.index')"> 🔒 Codigos VF </DropdownLink>
                                         <DropdownLink :href="route('cierre-caja.index')">🎰 Cierres de Cajas </DropdownLink>
                                         <DropdownLink :href="route('pagos.create')">💰 Pagos </DropdownLink>
                                         <DropdownLink :href="route('ventas.index')">🛍️ Consultar Ventas </DropdownLink>
@@ -101,7 +101,7 @@ const showingNavigationDropdown = ref(false);
 
                                     <template #content>
                                         <DropdownLink :href="route('profile.edit')"> {{ $t('Profile') }} </DropdownLink>
-                                        <DropdownLink v-if="$page.props.auth.user.id == 1" :href="route('agregar-usuario.create')"> Agregar Usuario </DropdownLink>
+                                        <DropdownLink :href="route('agregar-usuario.create')"> Agregar Usuario </DropdownLink>
                                         <DropdownLink :href="route('logout')" method="post" as="button">
                                             {{ $t('Log Out') }}
                                         </DropdownLink>
@@ -140,7 +140,7 @@ const showingNavigationDropdown = ref(false);
                     </div>
 
                     <!-- 📬 Correos -->
-                    <div class="pt-2 pb-3 space-y-1" v-if="$page.props.auth.user.id == 1">
+                    <div class="pt-2 pb-3 space-y-1">
                         <div class="px-4 text-sm text-gray-500">✉️ Correos</div>
                         <ResponsiveNavLink :href="route('correo-principal.index')" class="pl-4">📩 Principales</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('correo-madre.index')" class="pl-4">👤 Madres</ResponsiveNavLink>
@@ -153,21 +153,21 @@ const showingNavigationDropdown = ref(false);
                     <div class="pt-2 pb-3 space-y-1">
                         <div class="px-4 text-sm text-gray-500">🔤 Códigos</div>
                         <ResponsiveNavLink :href="route('codigo-verificacion.generar')" class="pl-4">🪄 Generar</ResponsiveNavLink>
-                        <ResponsiveNavLink v-if="$page.props.auth.user.id == 1" :href="route('codigo-verificacion.create')" class="pl-4">🔨 Crear</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('codigo-verificacion.create')" class="pl-4">🔨 Crear</ResponsiveNavLink>
                     </div>
 
                     <!-- 🛒 Ventas -->
                     <div class="pt-2 pb-3 space-y-1">
                         <div class="px-4 text-sm text-gray-500">🛒 Ventas</div>
                         <ResponsiveNavLink :href="route('ventas.create')" class="pl-4">💸 Venta de Juego</ResponsiveNavLink>
-                        <ResponsiveNavLink v-if="$page.props.auth.user.id == 1" :href="route('movimientos.index')" class="pl-4">🔄 Movimientos</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('movimientos.index')" class="pl-4">🔄 Movimientos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('cierre-caja.create')" class="pl-4">🎰 Cerrar Caja</ResponsiveNavLink>
                     </div>
 
                     <!-- 🔍 Consultar -->
                     <div class="pt-2 pb-3 space-y-1">
                         <div class="px-4 text-sm text-gray-500">🔍 Consultar</div>
-                        <ResponsiveNavLink v-if="$page.props.auth.user.id == 1" :href="route('codigo-verificacion.index')" class="pl-4">🔒 Códigos VF</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('codigo-verificacion.index')" class="pl-4">🔒 Códigos VF</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('cierre-caja.index')" class="pl-4">🎰 Cierres de Cajas</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('pagos.create')" class="pl-4">💰 Pagos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('ventas.index')" class="pl-4">🛍️ Consultar Ventas</ResponsiveNavLink>
@@ -189,7 +189,7 @@ const showingNavigationDropdown = ref(false);
 
                         <div class="mt-3 space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">{{ $t('Profile') }}</ResponsiveNavLink>
-                            <ResponsiveNavLink v-if="$page.props.auth.user.id == 1" :href="route('agregar-usuario.create')">Agregar Usuario</ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('agregar-usuario.create')">Agregar Usuario</ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('logout')" method="post" as="button">
                                 {{ $t('Log Out') }}
                             </ResponsiveNavLink>
