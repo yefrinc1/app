@@ -63,6 +63,15 @@ class CodigoVerificacionController extends Controller
                     'respaldo' => $codigoRespaldo,
                 ]);
             }
+
+            $notificacionExiste = Notificaciones::where('id_correo_juego', $correoJuego->id)
+            ->where('tipo', 'crear_codigos')
+            ->where('mensaje', 'Se necesita crear codigos')
+            ->first();
+
+            if ($notificacionExiste) {
+                $notificacionExiste->delete();
+            }
         }
 
         return redirect()->back();
@@ -206,13 +215,21 @@ class CodigoVerificacionController extends Controller
     
                     if ($codigoVerificacion2 == null) {
                         $ultimoCodigo = true;
-                        Notificaciones::create([
-                            'id_correo_juego' => $correoJuego->id,
-                            'tipo' => 'crear_codigos',
-                            'mensaje' => 'Se necesita crear codigos',
-                        ]);
+
+                        $notificacionExiste = Notificaciones::where('id_correo_juego', $correoJuego->id)
+                        ->where('tipo', 'crear_codigos')
+                        ->where('mensaje', 'Se necesita crear codigos')
+                        ->first();
+
+                        if ($notificacionExiste == null) {
+                            Notificaciones::create([
+                                'id_correo_juego' => $correoJuego->id,
+                                'tipo' => 'crear_codigos',
+                                'mensaje' => 'Se necesita crear codigos',
+                            ]);
+                        }
                     }
-    
+
                     $respuestaCodigo = ['codigo' => $codigoVerificacion->codigo, 'ultimo_codigo' => $ultimoCodigo];
                 } else {
                     $codigoRespaldo = CodigoVerificacion::where('disponible', 1)
@@ -222,11 +239,19 @@ class CodigoVerificacionController extends Controller
     
                     if ($codigoRespaldo != null) {
                         $respuestaCodigo = ['mensaje' => 'Los codigos para este correo ya se acabaron'];
-                        Notificaciones::create([
-                            'id_correo_juego' => $correoJuego->id,
-                            'tipo' => 'crear_codigos',
-                            'mensaje' => 'Se necesita crear codigos',
-                        ]);
+
+                        $notificacionExiste = Notificaciones::where('id_correo_juego', $correoJuego->id)
+                        ->where('tipo', 'crear_codigos')
+                        ->where('mensaje', 'Se necesita crear codigos')
+                        ->first();
+
+                        if ($notificacionExiste == null) {
+                            Notificaciones::create([
+                                'id_correo_juego' => $correoJuego->id,
+                                'tipo' => 'crear_codigos',
+                                'mensaje' => 'Se necesita crear codigos',
+                            ]);
+                        }
                     }
                 }
             }

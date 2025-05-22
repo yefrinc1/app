@@ -13,7 +13,7 @@ class NotificacionesController extends Controller
         $notificaciones = DB::table('notificaciones')
         ->leftJoin('correo_juegos', 'notificaciones.id_correo_juego', '=', 'correo_juegos.id')
         ->select('notificaciones.*', 'correo_juegos.correo')
-        ->orderBy('notificaciones.tipo')
+        ->orderBy('notificaciones.created_at')
         ->get();
 
         return Inertia::render('Notificaciones/Index', ["notificaciones" => $notificaciones]);

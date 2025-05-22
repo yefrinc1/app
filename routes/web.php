@@ -57,7 +57,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('/cierre-caja', CierreCajaController::class);
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
-    Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);;
+    Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
+    Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->name('consultar-inventario');
 });
 
 require __DIR__.'/auth.php';

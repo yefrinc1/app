@@ -61,12 +61,17 @@ const completarNotificacion = (id) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
+                                    <th class="px-4 py-2 text-left">#</th>
                                     <th class="px-4 py-2 text-left">Descripcion</th>
+                                    <th class="px-4 py-2 text-left">Fecha</th>
                                     <th class="px-4 py-2 text-center">Accion</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="notificacion in notificaciones" :key="notificacion.id" class="border-b hover:bg-gray-100">
+                                <tr v-for="(notificacion, i) in notificaciones" :key="notificacion.id" class="border-b hover:bg-gray-100">
+                                    <td class="px-4 py-2">
+                                        {{ i + 1 }}
+                                    </td>
                                     <td v-if="notificacion.tipo == 'crear_codigos'" class="px-4 py-2">
                                         {{ notificacion.mensaje }} para el correo <strong>{{ notificacion.correo }}</strong>
                                     </td>
@@ -75,6 +80,9 @@ const completarNotificacion = (id) => {
                                     </td>
                                     <td v-if="notificacion.tipo == 'crear_juego'" class="px-4 py-2">
                                         {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        {{ notificacion.created_at }}
                                     </td>
                                     <td class="px-4 py-2 flex justify-center space-x-2">
                                         <PrimaryButton @click="completarNotificacion(notificacion.id)">

@@ -3,6 +3,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import { defineProps } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import { useForm, Head, Link } from '@inertiajs/vue3';
@@ -113,6 +114,36 @@ const seleccionarJuego = async (nombreJuego) => {
     emit("update:modelValue", nombreJuego); // Actualiza el v-model
 };
 
+const eliminarVenta = (id) => {
+    swalWithTailwind.fire({
+        title: '¿Seguro que deseas eliminar esta venta?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Si, eliminar',
+        cancelButtonText: '<i class="fa-solid fa-ban"></i> Cancelar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            form.delete(route("ventas.destroy", id), {
+                onSuccess: () => {
+                    // Acción después de la eliminación exitosa
+                    swalWithTailwind.fire({
+                        title: 'Venta eliminada correctamente',
+                        icon: 'success',
+                    });
+                },
+                onError: () => {
+                    // Acción si hay un error
+                    swalWithTailwind.fire({
+                        title: 'Hubo un error al eliminar la venta',
+                        icon: 'error',
+                    });
+                },
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    });
+};
 </script>
 
 <template>
@@ -261,6 +292,9 @@ const seleccionarJuego = async (nombreJuego) => {
                                                 <i class="fa-solid fa-user-pen"></i>
                                             </SecondaryButton>
                                         </Link>
+                                        <DangerButton @click="eliminarVenta(venta.id)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </DangerButton>
                                     </td>
                                 </tr>
                                 <!-- Si no hay datos en la consulta -->

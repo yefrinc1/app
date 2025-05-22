@@ -116,6 +116,13 @@ const formatearFecha = (fecha) => {
   if (!fecha) return "";
   return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(fecha));
 };
+
+const irAPagina = (url) => {
+    form.get(url, {
+        preserveScroll: false,
+        preserveState: true,
+    });
+};
 </script>
 
 <template>
@@ -197,10 +204,14 @@ const formatearFecha = (fecha) => {
                     <div class="mt-4">
                         <div class="flex justify-center space-x-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-                                <Link v-if="link.url" :href="link.url" v-html="link.label"
+                                <button v-if="link.url"
+                                    @click.prevent="irAPagina(link.url + '&search=' + encodeURIComponent(searchQuery))"
+                                    v-html="link.label"
                                     class="px-3 py-1 border rounded-md"
-                                    :class="link.active ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                        : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'" />
+                                    :class="link.active
+                                    ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
+                                    : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'"
+                                />
                             </template>
                         </div>
                     </div>

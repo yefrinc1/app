@@ -33,6 +33,9 @@ const form = useForm({
     juego: '',
     precio_usd: '',
     codigo: '',
+    primaria_ps4: '',
+    primaria_ps5: '',
+    secundaria: '',
 });
 
 searchQuery.value = props.search;
@@ -48,7 +51,7 @@ if (props.mensaje_correo_creado != '') {
     });
 }
 
-const editarModal = (id, contrasena, disponible, fecha_nacimiento, juego, precio_usd, precio_cop) => {
+const editarModal = (id, contrasena, disponible, fecha_nacimiento, juego, precio_usd, precio_cop, primaria_ps5, primaria_ps4, secundaria) => {
     form.id = id;
     form.contrasena = contrasena;
     form.disponible = disponible == 1 ? true : false;
@@ -56,6 +59,9 @@ const editarModal = (id, contrasena, disponible, fecha_nacimiento, juego, precio
     form.juego = juego;
     form.precio_usd = precio_usd;
     form.precio_cop = precio_cop;
+    form.primaria_ps5 = primaria_ps5;
+    form.primaria_ps4 = primaria_ps4;
+    form.secundaria = secundaria;
     confirmingCorreoEditar.value = true;
     nextTick(() => correoInput.value.focus());
 };
@@ -181,7 +187,7 @@ const formatearFecha = (fecha) => {
                                     <td class="px-4 py-2">{{ correo.disponible }}</td>
                                     <td class="px-4 py-2 flex justify-center space-x-2">
                                         <SecondaryButton
-                                            @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.juego, correo.precio_usd, correo.precio_cop)">
+                                            @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.juego, correo.precio_usd, correo.precio_cop, correo.primaria_ps5, correo.primaria_ps4, correo.secundaria)">
                                             <i class="fa-solid fa-user-pen"></i>
                                         </SecondaryButton>
                                         <DangerButton @click="eliminarCorreo(correo.id)">
@@ -269,6 +275,47 @@ const formatearFecha = (fecha) => {
                             v-model="form.codigo"
                         ></textarea>
                         <InputError :message="form.errors.codigo" class="mt-2" />
+                    </div>
+
+                    <div class="mt-6 flex space-x-6">
+                        <div class="flex flex-col w-1/3">
+                            <InputLabel for="primaria_ps4" value="Primaria PS4" />
+                            <TextInput
+                                id="primaria_ps4"
+                                ref="primaria_ps4"
+                                v-model="form.primaria_ps4"
+                                type="number"
+                                class="mt-1 block w-full"
+                                autocomplete="primaria_ps4"
+                            />
+                            <InputError :message="form.errors.primaria_ps4" class="mt-2" />
+                        </div>
+
+                        <div class="flex flex-col w-1/3">
+                            <InputLabel for="primaria_ps5" value="Primaria PS5" />
+                            <TextInput
+                                id="primaria_ps5"
+                                ref="primaria_ps5"
+                                v-model="form.primaria_ps5"
+                                type="number"
+                                class="mt-1 block w-full"
+                                autocomplete="primaria_ps5"
+                            />
+                            <InputError :message="form.errors.primaria_ps5" class="mt-2" />
+                        </div>
+
+                        <div class="flex flex-col w-1/3">
+                            <InputLabel for="secundaria" value="Secundaria" />
+                            <TextInput
+                                id="secundaria"
+                                ref="secundaria"
+                                v-model="form.secundaria"
+                                type="number"
+                                class="mt-1 block w-full"
+                                autocomplete="secundaria"
+                            />
+                            <InputError :message="form.errors.secundaria" class="mt-2" />
+                        </div>
                     </div>
 
                     <div class="block mt-6">

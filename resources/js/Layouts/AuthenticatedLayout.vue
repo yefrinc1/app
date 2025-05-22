@@ -71,6 +71,7 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink :href="route('cierre-caja.index')">🎰 Cierres de Cajas </DropdownLink>
                                         <DropdownLink :href="route('pagos.create')">💰 Pagos </DropdownLink>
                                         <DropdownLink :href="route('ventas.index')">🛍️ Consultar Ventas </DropdownLink>
+                                        <DropdownLink :href="route('consultar-inventario')">🧰 Consultar Inventario </DropdownLink>
                                     </template>
                                 </DropDownMenu>
                                 <NavLink :href="route('notificaciones.index')" :active="route().current('notificaciones.index')">

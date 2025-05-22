@@ -71,18 +71,42 @@ class VentasController extends Controller
         if ($request->tipo_cuenta == 'Primaria') {
             if ($request->consola == 'PS4') {
                 $licencia = "primaria_ps4";
+
                 $correoJuego = CorreoJuego::where('juego', $request->juego)
                 ->where('primaria_ps4', '<', 2)
+                ->where('primaria_ps5', '<=', 1)
                 ->where('disponible', 1)
+                ->orderBy('secundaria')
                 ->orderBy('id')
                 ->first();
+
+                if ($correoJuego == null) {
+                    $correoJuego = CorreoJuego::where('juego', $request->juego)
+                    ->where('primaria_ps4', '<', 2)
+                    ->where('disponible', 1)
+                    ->orderBy('secundaria')
+                    ->orderBy('id')
+                    ->first();
+                }
             } else if ($request->consola == 'PS5') {
                 $licencia = "primaria_ps5";
+
                 $correoJuego = CorreoJuego::where('juego', $request->juego)
                 ->where('primaria_ps5', '<', 2)
+                ->where('primaria_ps4', '<=', 1)
                 ->where('disponible', 1)
+                ->orderBy('secundaria')
                 ->orderBy('id')
                 ->first();
+
+                if ($correoJuego == null) {
+                    $correoJuego = CorreoJuego::where('juego', $request->juego)
+                    ->where('primaria_ps5', '<', 2)
+                    ->where('disponible', 1)
+                    ->orderBy('secundaria')
+                    ->orderBy('id')
+                    ->first();
+                }
             }
         } else if ($request->tipo_cuenta == 'Secundaria') {
             $licencia = "secundaria";
@@ -195,11 +219,18 @@ class VentasController extends Controller
                     }
 
                     if ($codigosLibres == 1) {
-                        Notificaciones::create([
-                            'id_correo_juego' => $correoJuego->id,
-                            'tipo' => 'crear_codigos',
-                            'mensaje' => 'Se necesita crear codigos',
-                        ]);
+                        $notificacionExiste = Notificaciones::where('id_correo_juego', $correoJuego->id)
+                        ->where('tipo', 'crear_codigos')
+                        ->where('mensaje', 'Se necesita crear codigos')
+                        ->first();
+
+                        if ($notificacionExiste == null) {
+                            Notificaciones::create([
+                                'id_correo_juego' => $correoJuego->id,
+                                'tipo' => 'crear_codigos',
+                                'mensaje' => 'Se necesita crear codigos',
+                            ]);
+                        }
                     }
 
                     $cuentaJuego["resultado"] = true;
@@ -211,22 +242,36 @@ class VentasController extends Controller
                     $cuentaJuego["correo"] = $correoJuego->correo;
                     $cuentaJuego["contrasena"] = $correoJuego->contrasena;
                 } else {
-                    Notificaciones::create([
-                        'id_correo_juego' => $correoJuego->id,
-                        'tipo' => 'crear_codigos',
-                        'mensaje' => 'Se necesita crear codigos',
-                    ]);
+                    $notificacionExiste = Notificaciones::where('id_correo_juego', $correoJuego->id)
+                    ->where('tipo', 'crear_codigos')
+                    ->where('mensaje', 'Se necesita crear codigos')
+                    ->first();
+
+                    if ($notificacionExiste == null) {
+                        Notificaciones::create([
+                            'id_correo_juego' => $correoJuego->id,
+                            'tipo' => 'crear_codigos',
+                            'mensaje' => 'Se necesita crear codigos',
+                        ]);
+                    }
 
                     $cuentaJuego["mensaje"] = "Este correo: $correoJuego->correo Ya gasto todos los codigos por favor crear nuevos para poder generar la venta";
                     $cuentaJuego["resultado"] = false;
                 }
             }
         } else {
-            Notificaciones::create([
-                'juego' => $request->juego,
-                'tipo' => 'crear_juego',
-                'mensaje' => "Se necesita crear el juego en cuenta $request->tipo_cuenta para $request->consola",
-            ]);
+            $notificacionExiste = Notificaciones::where('juego', $request->juego)
+            ->where('tipo', 'crear_juego')
+            ->where('mensaje', "Se necesita crear el juego en cuenta $request->tipo_cuenta para $request->consola")
+            ->first();
+
+            if ($notificacionExiste == null) {
+                Notificaciones::create([
+                    'juego' => $request->juego,
+                    'tipo' => 'crear_juego',
+                    'mensaje' => "Se necesita crear el juego en cuenta $request->tipo_cuenta para $request->consola",
+                ]);
+            }
 
             $cuentaJuego["mensaje"] = "Este juego en cuenta $request->tipo_cuenta para $request->consola no está disponible en nuestro inventario actualmente.";
             $cuentaJuego["resultado"] = false;
@@ -249,12 +294,14 @@ class VentasController extends Controller
             'cliente' => 'required',
             'medio_pago' => 'required',
             'precio' => 'required',
+            'consola' => 'required',
         ]);
 
         $venta->update([
             'cliente' => $validatedData['cliente'],
             'medio_pago' => $validatedData['medio_pago'],
             'precio' => $validatedData['precio'],
+            'consola' => $validatedData['consola'],
         ]);
 
         $mensajeEdit = "Se edito correctamente la venta";
@@ -298,5 +345,12 @@ class VentasController extends Controller
         ->get();
     
         return response()->json($juegos);
+    }
+
+    public function destroy(string $id)
+    {
+        $venta = Ventas::findOrFail($id);
+        $venta->delete();
+        return redirect()->back();
     }
 }

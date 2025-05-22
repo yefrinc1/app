@@ -16,6 +16,7 @@ const form = useForm({
     cliente: props.venta.cliente,
     medio_pago: props.venta.medio_pago,
     precio: props.venta.precio,
+    consola: props.venta.consola,
 });
 </script>
 
@@ -86,6 +87,23 @@ const form = useForm({
                                 required
                             />
                             <InputError class="mt-2" :message="form.errors.precio" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="consola" value="Consola" />
+
+                            <select
+                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
+                                v-model="form.consola" 
+                                id="consola"
+                                required
+                            >
+                                <option value="" >Selecciona una consola</option>
+                                <option value="PS4">PS4</option>
+                                <option value="PS5">PS5</option>
+                            </select>
+                        
+                            <InputError class="mt-2" :message="form.errors.consola" />
                         </div>
 
                         <div class="flex items-center gap-4">
