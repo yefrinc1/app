@@ -172,6 +172,7 @@ const showingNavigationDropdown = ref(false);
                         <ResponsiveNavLink :href="route('cierre-caja.index')" class="pl-4">🎰 Cierres de Cajas</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('pagos.create')" class="pl-4">💰 Pagos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('ventas.index')" class="pl-4">🛍️ Consultar Ventas</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('consultar-inventario')" class="pl-4">🧰 Consultar Inventario</ResponsiveNavLink>
                     </div>
 
                     <!-- 🔔 Notificaciones -->

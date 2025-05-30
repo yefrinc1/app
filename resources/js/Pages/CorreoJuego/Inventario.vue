@@ -1,8 +1,8 @@
 <script setup>
 import { defineProps } from "vue";
-import { Link, Head, useForm } from "@inertiajs/vue3";
+import { Head, useForm } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
-import { ref } from 'vue';
+import { ref, watch } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
@@ -11,11 +11,15 @@ const searchQuery = ref('');
 const props = defineProps({
     correos: Object,
     search: String,
+    modelValue: String,
 });
 
 const form = useForm({});
 
 searchQuery.value = props.search;
+const sugerencias = ref([]);
+const juegoEncontrado = ref();
+const emit = defineEmits(["update:modelValue"]);
 
 const buscarJuego = () => {
     form.get(route('consultar-inventario', { search: searchQuery.value }), {
@@ -28,6 +32,47 @@ const irAPagina = (url) => {
         preserveScroll: false,
         preserveState: true,
     });
+};
+
+// Observa cambios en modelValue y actualiza searchQuery
+watch(
+    () => props.modelValue,
+    (nuevoValor) => {
+        searchQuery.value = nuevoValor;
+    }
+);
+
+// Función para buscar correos en el backend
+const mostrarListaJuegos = async () => {
+    juegoEncontrado.value = false;
+
+    if (searchQuery.value.length < 1) {
+        sugerencias.value = [];
+        return;
+    }
+
+    try {
+        const { data } = await axios.get(route("buscar-juegos"), {
+            params: { juego: searchQuery.value },
+        });
+
+        sugerencias.value = data;
+
+        if (sugerencias.value.length != 0) {
+            if (sugerencias.value[0]['juego'] == searchQuery.value) {
+                juegoEncontrado.value = true;
+            }
+        }
+    } catch (error) {
+        console.error("Error buscando juegos:", error);
+    }
+};
+
+const seleccionarJuego = async (nombreJuego) => {
+    searchQuery.value = nombreJuego; // Asigna el valor seleccionado
+    sugerencias.value = []; // Oculta la lista
+    juegoEncontrado.value = true;
+    emit("update:modelValue", nombreJuego); // Actualiza el v-model
 };
 
 </script>
@@ -45,8 +90,33 @@ const irAPagina = (url) => {
                 <section>
                     <!-- Filtro de búsqueda -->
                     <div class="flex justify-between items-center mb-4">
-                        <div class="flex space-x-4 w-3/6">
-                            <TextInput v-model="searchQuery" type="text" placeholder="Buscar juego..." class="block w-full" />
+                        <div class="flex space-x-4 w-full">
+                            <div class="relative w-full md:w-1/2">
+                                <TextInput
+                                    id="juego"
+                                    ref="juego"
+                                    v-model="searchQuery"
+                                    @input="mostrarListaJuegos"
+                                    type="text"
+                                    class="mt-1 w-full"
+                                    autocomplete="off"
+                                    placeholder="Buscar juego..."
+                                />
+
+                                <ul
+                                    v-if="form.juego !== '' && sugerencias.length !== 0 && juegoEncontrado == false"
+                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md z-10"
+                                >
+                                    <li
+                                        v-for="datosJuego in sugerencias"
+                                        :key="datosJuego.id"
+                                        @click="seleccionarJuego(datosJuego.juego)"
+                                        class="p-2 cursor-pointer bg-white hover:bg-gray-100 text-black"
+                                    >
+                                        {{ datosJuego.juego }}
+                                    </li>
+                                </ul>
+                            </div>
                             <PrimaryButton @click="buscarJuego">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </PrimaryButton>

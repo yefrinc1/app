@@ -21,7 +21,10 @@ class VentasController extends Controller
     
         // Si no hay ningún filtro, no hacemos la consulta
         if (!$juego && !$cliente && !$correo && !$fecha) {
-            $resultadoConsulta = [];
+            $resultadoConsulta = Ventas::with('correoJuego')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
         } else {
             $resultadoConsulta = Ventas::with('correoJuego')
                 ->when($juego, function ($query, $juego) {
@@ -30,7 +33,8 @@ class VentasController extends Controller
                     });
                 })
                 ->when($cliente, function ($query, $cliente) {
-                    return $query->where('cliente', 'like', "%$cliente%");
+                    $clienteSinEspacios = str_replace(' ', '', $cliente);
+                    return $query->whereRaw("REGEXP_REPLACE(cliente, '[[:space:]]', '') LIKE ?", ["%$clienteSinEspacios%"]);
                 })
                 ->when($correo, function ($query, $correo) {
                     return $query->whereHas('correoJuego', function ($q) use ($correo) {

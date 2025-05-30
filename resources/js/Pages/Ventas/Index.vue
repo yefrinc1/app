@@ -47,13 +47,24 @@ const juegoEncontrado = ref();
 const sectionConsultar = ref(false);
 
 if (props.resultado_consulta && props.resultado_consulta.length > 0) {
-    // Código para manejar cuando hay resultados
+    // Código para manejar cuando hay resultados.
+
     form.juego = props.filtros.juego
     form.cliente = props.filtros.cliente
     form.correo = props.filtros.correo
     form.fecha = props.filtros.fecha
     sectionConsultar.value = true;
     window.location.href = '#section-resultado';
+} else {
+    form.juego = props.filtros.juego
+    form.cliente = props.filtros.cliente
+    form.correo = props.filtros.correo
+    form.fecha = props.filtros.fecha
+    
+    swalWithTailwind.fire({
+        title: 'No se encontro ninguna venta con estos filtros',
+        icon: 'warning',
+    })
 }
 
 const formatFecha = (fecha) => {
@@ -180,7 +191,7 @@ const eliminarVenta = (id) => {
 
                                 <ul
                                     v-if="form.juego !== '' && sugerencias.length !== 0 && juegoEncontrado == false"
-                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md"
+                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md z-10"
                                 >
                                     <li
                                         v-for="Datosjuego in sugerencias"

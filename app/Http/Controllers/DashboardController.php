@@ -7,7 +7,9 @@ use App\Models\Notificaciones;
 use App\Models\Ventas;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -99,11 +101,53 @@ class DashboardController extends Controller
             'roi' => round($roiTotal, 2),
         ];
 
+        $graficaCumplimientoDiario = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%d") AS fecha')
+            ->selectRaw('ROUND((SUM(precio) / 700000) * 100, 2) AS suma_dividida')
+            ->groupBy(DB::raw('DATE_FORMAT(created_at, "%m/%d")'))
+            ->whereRaw('DATE_FORMAT(created_at, "%m/%d") <= ?', [$hoy->format('m/d')])
+            ->orderByRaw('fecha DESC')
+            ->limit(8)
+            ->get();
+
+        $graficaCumplimientoDiario = $graficaCumplimientoDiario->toArray();
+
+        usort($graficaCumplimientoDiario, function($a, $b) {
+            $fechaA = DateTime::createFromFormat('m/d', $a['fecha']);
+            $fechaB = DateTime::createFromFormat('m/d', $b['fecha']);
+
+            return $fechaA <=> $fechaB;
+        });
+
+        foreach ($graficaCumplimientoDiario as $clave => $item) {
+            if ($item["fecha"] === $hoy->format('m/d')) {
+                $graficaCumplimientoDiario[$clave]["fecha"] = 'Hoy';
+            }
+        }
+
+        $graficaCumplimientoMensual = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%Y") AS fecha')
+            ->selectRaw('ROUND((SUM(precio) / 21000000) * 100, 2) AS suma_dividida')
+            ->groupBy(DB::raw('DATE_FORMAT(created_at, "%m/%Y")')) // Agrupar por mes y año
+            ->whereRaw('DATE_FORMAT(created_at, "%m/%Y") <= ?', [$hoy->format('m/Y')]) // Filtro por mes y año
+            ->orderByRaw('fecha DESC')
+            ->limit(8)
+            ->get();
+
+        $graficaCumplimientoMensual = $graficaCumplimientoMensual->toArray();
+
+        usort($graficaCumplimientoMensual, function($a, $b) {
+            $fechaA = DateTime::createFromFormat('m/Y', $a['fecha']);
+            $fechaB = DateTime::createFromFormat('m/Y', $b['fecha']);
+
+            return $fechaA <=> $fechaB;
+        });
+
         return Inertia::render('Dashboard', [
             "cantidad_notificaciones" => $cantidadNotificaciones,
             "ventas_hoy" => $ventasHoyCompletas,
             "ventas_mes" => $ventasMesCompletas,
             "ventas_totales" => $ventasTotales,
+            "grafica_cumplimiento_diario" => $graficaCumplimientoDiario,
+            "grafica_cumplimiento_mensual" => $graficaCumplimientoMensual,
             "mensaje" => $mensaje,
         ]);
     }

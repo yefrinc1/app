@@ -126,7 +126,7 @@ class CorreoJuegoController extends Controller
             if ($request->precio_usd) {
                 $saldoRestanteUSD = $correoMadre->saldo_usd - $request->precio_usd;
 
-                $precioDolar = $$correoMadre->saldo_usd != 0 ? ($correoMadre->saldo_cop / $correoMadre->saldo_usd) : 0;
+                $precioDolar = $correoMadre->saldo_usd != 0 ? ($correoMadre->saldo_cop / $correoMadre->saldo_usd) : 0;
                 $precioCOP = $request->precio_usd * $precioDolar;
                 $saldoRestanteCOP = $correoMadre->saldo_cop - $precioCOP;
                 $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);

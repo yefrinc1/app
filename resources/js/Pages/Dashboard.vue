@@ -3,12 +3,34 @@ import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import { Head } from '@inertiajs/vue3';
 import { defineProps } from "vue";
 import Swal from 'sweetalert2';
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Bar } from 'vue-chartjs'
+
+// Registrar módulos necesarios
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend
+)
 
 const props = defineProps({
     cantidad_notificaciones: Number,
     ventas_hoy: Array,
     ventas_mes: Array,
     ventas_totales: Array,
+    grafica_cumplimiento_diario: Array,
+    grafica_cumplimiento_mensual: Array,
     mensaje: String,
 });
 
@@ -21,6 +43,81 @@ if (props.mensaje != '') {
         title: props.mensaje,
         icon: "success",
     });
+}
+
+// Colores dinámicos
+const getColor = (valor) => {
+  if (valor < 100) {
+    return '#F44336'; // Rojo
+  } else if (valor >= 100 && valor <= 109) {
+    return '#4CAF50'; // Verde
+  } else {
+    return '#2196F3'; // Azul
+  }
+};
+
+// Cumplimiento Diario
+const cumplimientoDiario = props.grafica_cumplimiento_diario.map(item => parseFloat(item.suma_dividida));  // Convertir a números
+const labelsDiario = props.grafica_cumplimiento_diario.map(item => item.fecha);
+const backgroundColorDiario = cumplimientoDiario.map(getColor);
+
+// Data para el gráfico
+const chartDataDiario = {
+  labels: labelsDiario,  // Etiquetas con las fechas
+  datasets: [
+    {
+      label: 'Cumplimiento (%)',
+      data: cumplimientoDiario,  // Datos de suma_dividida
+      backgroundColor: backgroundColorDiario,  // Colores basados en los valores
+      borderRadius: 5,
+    },
+  ],
+};
+
+// Opciones de visualización
+const chartOptionsDiario = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+    title: {
+      display: true,
+      text: 'Porcentaje de Cumplimiento Diario',
+    },
+  },
+}
+
+// Cumplimiento Mensual
+const cumplimientoMensual = props.grafica_cumplimiento_mensual.map(item => parseFloat(item.suma_dividida));  // Convertir a números
+const labelsMensual = props.grafica_cumplimiento_mensual.map(item => item.fecha);
+const backgroundColorMensual= cumplimientoMensual.map(getColor);
+
+// Data para el gráfico
+const chartDataMensual = {
+  labels: labelsMensual,  // Etiquetas con las fechas
+  datasets: [
+    {
+      label: 'Cumplimiento (%)',
+      data: cumplimientoMensual,  // Datos de suma_dividida
+      backgroundColor: backgroundColorMensual,  // Colores basados en los valores
+      borderRadius: 5,
+    },
+  ],
+};
+
+// Opciones de visualización
+const chartOptionsMensual = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+    title: {
+      display: true,
+      text: 'Porcentaje de Cumplimiento Mensual',
+    },
+  },
 }
 
 </script>
@@ -57,6 +154,12 @@ if (props.mensaje != '') {
                         Informacion de ventas HOY
                     </h2>
 
+                    <div class="mb-6 w-full">
+                        <div>
+                            <Bar :data="chartDataDiario" :options="chartOptionsDiario"/>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto shadow rounded-lg">
                         <table class="min-w-full border border-gray-200">
                             <thead>
@@ -85,6 +188,12 @@ if (props.mensaje != '') {
                     <h2 class="text-lg font-medium text-gray-900 mb-6">
                         Informacion de ventas MES
                     </h2>
+
+                    <div class="mb-6 w-full">
+                        <div>
+                            <Bar :data="chartDataMensual" :options="chartOptionsMensual"/>
+                        </div>
+                    </div>
 
                     <div class="overflow-x-auto shadow rounded-lg">
                         <table class="min-w-full border border-gray-200">
