@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\CodigoVerificacion;
 use App\Models\CorreoJuego;
+use App\Models\Movimientos;
 use App\Models\Notificaciones;
+use App\Models\ResumenMensual;
 use App\Models\Ventas;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -71,6 +74,10 @@ class VentasController extends Controller
     {
         $cuentaJuego = [];
         $licencia = "";
+        $hoy = Carbon::today();
+        $mesActual = $hoy->month;
+        $anioActual = $hoy->year;
+
 
         if ($request->tipo_cuenta == 'Primaria') {
             if ($request->consola == 'PS4') {
@@ -176,7 +183,6 @@ class VentasController extends Controller
                 $cuentaJuego["consola"] = $request->consola;
                 $cuentaJuego["correo"] = $correoJuego->correo;
                 $cuentaJuego["contrasena"] = $correoJuego->contrasena;
-                $cuentaJuego["resultado"] = true;
                 $cuentaJuego["codigo"] = "";
             } else {
                 $codigosLibres = 0;
@@ -279,6 +285,55 @@ class VentasController extends Controller
 
             $cuentaJuego["mensaje"] = "Este juego en cuenta $request->tipo_cuenta para $request->consola no está disponible en nuestro inventario actualmente.";
             $cuentaJuego["resultado"] = false;
+        }
+
+        if ($cuentaJuego["resultado"]) {
+            $existePeriodo = ResumenMensual::where('periodo', $hoy->format('m/Y'))->get()->first();
+
+            // Ventas del mes
+            $ventasMes = Ventas::whereMonth('created_at', $mesActual)
+                ->whereYear('created_at', $anioActual);
+
+            // Suma de ingresos por movimientos tipo Ingreso del mes
+            $movimientoIngresoMes = Movimientos::whereMonth('created_at', operator: $mesActual)
+                ->whereYear('created_at', $anioActual)
+                ->where('tipo', 'Ingreso')
+                ->sum('valor');
+
+            // Cantidad de ventas y suma total del campo precio
+            $cantidadVentasMes = $ventasMes->count();
+            $sumaIngresosMes = $ventasMes->sum('precio');
+
+            // Suma de egresos del mes
+            $sumaEgresosMes = Movimientos::whereMonth('created_at', $mesActual)
+                ->whereYear('created_at', $anioActual)
+                ->where('tipo', 'Egreso')
+                ->sum('valor');
+
+            $ingresosTotalesMes = $sumaIngresosMes + $movimientoIngresoMes;
+            $margenGananciaMes = $ingresosTotalesMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $ingresosTotalesMes, 2) * 100;
+            $roiMes = $sumaEgresosMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $sumaEgresosMes, 2) * 100;
+
+            if ($existePeriodo) {
+                $existePeriodo->update([
+                    'cantidad' => $cantidadVentasMes,
+                    'ingresos' => intval($ingresosTotalesMes),
+                    'egresos' => intval($sumaEgresosMes),
+                    'utilidad_neta' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
+                    'margen_ganancia' => round($margenGananciaMes, 2),
+                    'roi' => round($roiMes, 2)
+                ]);
+            } else {
+                ResumenMensual::create([
+                    'periodo' => $hoy->format('m/Y'),
+                    'cantidad' => $cantidadVentasMes,
+                    'ingresos' => intval($ingresosTotalesMes),
+                    'egresos' => intval($sumaEgresosMes),
+                    'utilidad_neta' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
+                    'margen_ganancia' => round($margenGananciaMes, 2),
+                    'roi' => round($roiMes, 2)
+                ]);
+            }
         }
 
         return redirect()->route('ventas.create', ['cuenta_juego' => $cuentaJuego]);

@@ -259,6 +259,19 @@ class CorreoJuegoController extends Controller
             }
         }
 
+        $cuentaNueva = $request->primaria_ps4 + $request->primaria_ps5 + $request->secundaria;
+        if ($icon_mensaje == 'success' && $cuentaNueva == 0) {
+            $notificacionExiste = Notificaciones::where('juego', $request->juego)
+                ->where('tipo', 'crear_juego')
+                ->first();
+
+            if ($notificacionExiste) {
+                $notificacionExiste->delete();
+            }
+        }
+
+        dd(config('app.mi_variable'));
+
         return redirect()->route('correo-juegos.index', ['mensaje_correo_creado' => $mensaje, 'icon_mensaje' => $icon_mensaje]);
     }
 
