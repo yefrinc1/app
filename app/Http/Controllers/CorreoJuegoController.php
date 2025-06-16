@@ -270,8 +270,6 @@ class CorreoJuegoController extends Controller
             }
         }
 
-        dd(config('app.mi_variable'));
-
         return redirect()->route('correo-juegos.index', ['mensaje_correo_creado' => $mensaje, 'icon_mensaje' => $icon_mensaje]);
     }
 

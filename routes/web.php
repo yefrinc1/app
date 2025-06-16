@@ -9,6 +9,7 @@ use App\Http\Controllers\CorreoMadreController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CorreoPrincipalController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EstadisticaController;
 use App\Http\Controllers\MovimientosController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
@@ -59,6 +60,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
     Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->name('consultar-inventario');
+    Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
+    Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
 });
 
 require __DIR__.'/auth.php';

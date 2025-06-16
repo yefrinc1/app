@@ -9,20 +9,19 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 const searchQuery = ref('');
 
 const props = defineProps({
-    correos: Object,
+    juegos: Object,
     search: String,
     modelValue: String,
 });
 
 const form = useForm({});
-
 searchQuery.value = props.search == null ? '' : props.search;
 const sugerencias = ref([]);
 const juegoEncontrado = ref();
 const emit = defineEmits(["update:modelValue"]);
 
 const buscarJuego = () => {
-    form.get(route('consultar-inventario', { search: searchQuery.value }), {
+    form.get(route('estadistica-juegos', { search: searchQuery.value }), {
         preserveScroll: true,
     });
 };
@@ -42,7 +41,8 @@ watch(
     }
 );
 
-// Función para buscar correos en el backend
+
+// Función para buscar juegos en el backend
 const mostrarListaJuegos = async () => {
     juegoEncontrado.value = false;
 
@@ -79,10 +79,10 @@ const seleccionarJuego = async (nombreJuego) => {
 
 <template>
 
-    <Head title="🧰 Consultar Inventario" />
+    <Head title="💹 Rentabilidad Juegos" />
     <LayoutPageHeader>
         <template #titulo-pagina>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">🧰 Consultar Inventario</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">💹 Rentabilidad Juegos</h2>
         </template>
 
         <template #contenido-pagina>
@@ -128,26 +128,34 @@ const seleccionarJuego = async (nombreJuego) => {
                             <thead>
                                 <tr class="bg-gray-100 border-b">
                                     <th class="px-4 py-2 text-left">#</th>
-                                    <th class="px-4 py-2 text-left">Correo</th>
-                                    <th class="px-4 py-2 text-left">Contraseña</th>
                                     <th class="px-4 py-2 text-left">Juego</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS4</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS5</th>
-                                    <th class="px-4 py-2 text-left">Secundaria</th>
+                                    <th class="px-4 py-2 text-left">Comprado</th>
+                                    <th class="px-4 py-2 text-left">Vendido</th>
+                                    <th class="px-4 py-2 text-left">Diferencia</th>
+                                    <th class="px-4 py-2 text-left">Fecha Minima</th>
+                                    <th class="px-4 py-2 text-left">Fecha Maxima</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(correo, i) in props.correos.data" :key="correo.id"
+                                <tr v-for="(juego, i) in props.juegos.data" :key="juego.id"
                                     class="border-b hover:bg-gray-100">
                                     <td class="px-4 py-2">{{ i + 1 }}</td>
-                                    <td class="px-4 py-2">{{ correo.correo }}</td>
-                                    <td class="px-4 py-2">{{ correo.contrasena }}</td>
-                                    <td class="px-4 py-2">{{ correo.juego }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps4 }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps5 }}</td>
-                                    <td class="px-4 py-2">{{ correo.secundaria }}</td>
+                                    <td class="px-4 py-2">{{ juego.juego }}</td>
+                                    <td class="px-4 py-2">{{ juego.total_comprado }}</td>
+                                    <td class="px-4 py-2">{{ juego.total_vendido }}</td>
+                                    <td 
+                                        class="px-4 py-2" 
+                                        :class="{
+                                            'text-green-600': juego.diferencia > 0,
+                                            'text-red-600': juego.diferencia < 0
+                                        }"
+                                        >
+                                        {{ juego.diferencia }}
+                                    </td>
+                                    <td class="px-4 py-2">{{ juego.fecha_minima }}</td>
+                                    <td class="px-4 py-2">{{ juego.fecha_maxima }}</td>
                                 </tr>
-                                <tr v-if="props.correos.data.length === 0">
+                                <tr v-if="props.juegos.data.length === 0">
                                     <td class="px-4 py-2 text-center" colspan="12">
                                         No hay juegos registrados.
                                     </td>
@@ -159,7 +167,7 @@ const seleccionarJuego = async (nombreJuego) => {
                     <!-- Paginación -->
                     <div class="mt-4">
                         <div class="flex justify-center space-x-2">
-                            <template v-for="(link, index) in props.correos.links" :key="index">
+                            <template v-for="(link, index) in props.juegos.links" :key="index">
 
                             <button v-if="link.url"
                                 @click.prevent="irAPagina(link.url + '&search=' + encodeURIComponent(searchQuery))"

@@ -118,7 +118,7 @@ const crearPrimerCierre = () => {
                 <section>
                     <!-- Filtro de búsqueda -->
                     <div class="flex justify-between items-center mb-4">
-                        <div class="flex space-x-4 w-1/6">
+                        <div class="flex space-x-4 w-full md:w-1/6">
                             <TextInput v-model="searchQuery" type="date" class="block w-full" />
                             <PrimaryButton @click="buscarFecha">
                                 <i class="fa-solid fa-magnifying-glass"></i>

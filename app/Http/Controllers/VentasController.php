@@ -364,8 +364,7 @@ class VentasController extends Controller
         ]);
 
         $mensajeEdit = "Se edito correctamente la venta";
-
-        return Inertia::render('Ventas/Index', ['mensaje_edit' => $mensajeEdit]);
+        return redirect()->route('ventas.index', ['mensaje_edit' => $mensajeEdit]);
     }
 
     public function comprobarExistenciaJuego($tipo_cuenta, $consola, $juego)

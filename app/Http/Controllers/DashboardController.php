@@ -42,67 +42,64 @@ class DashboardController extends Controller
             'diferencia' => intval(($sumaIngresosHoy + $movimientoIngresoHoy) - $sumaEgresosHoy),
         ];
 
-                $existePeriodo = ResumenMensual::where('periodo', $hoy->format('m/Y'))->get()->first();
+        // Ventas del mes
+        $ventasMes = Ventas::whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual);
 
-        if (!$existePeriodo)  {
-            // Ventas del mes
-            $ventasMes = Ventas::whereMonth('created_at', $mesActual)
-                ->whereYear('created_at', $anioActual);
+        // Suma de ingresos por movimientos tipo Ingreso del mes
+        $movimientoIngresoMes = Movimientos::whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual)
+            ->where('tipo', 'Ingreso')
+            ->sum('valor');
 
-            if ($ventasMes->count() != 0) {
-                // Suma de ingresos por movimientos tipo Ingreso del mes
-                $movimientoIngresoMes = Movimientos::whereMonth('created_at', operator: $mesActual)
-                    ->whereYear('created_at', $anioActual)
-                    ->where('tipo', 'Ingreso')
-                    ->sum('valor');
+        // Cantidad de ventas y suma total del campo precio
+        $cantidadVentasMes = $ventasMes->count();
+        $sumaIngresosMes = $ventasMes->sum('precio');
 
-                // Cantidad de ventas y suma total del campo precio
-                $cantidadVentasMes = $ventasMes->count();
-                $sumaIngresosMes = $ventasMes->sum('precio');
+        // Suma de egresos del mes
+        $sumaEgresosMes = Movimientos::whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual)
+            ->where('tipo', 'Egreso')
+            ->sum('valor');
 
-                // Suma de egresos del mes
-                $sumaEgresosMes = Movimientos::whereMonth('created_at', $mesActual)
-                    ->whereYear('created_at', $anioActual)
-                    ->where('tipo', 'Egreso')
-                    ->sum('valor');
+        $ingresosTotalesMes = $sumaIngresosMes + $movimientoIngresoMes;
+        $margenGananciaMes = $ingresosTotalesMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $ingresosTotalesMes, 2) * 100;
+        $roiMes = $sumaEgresosMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $sumaEgresosMes, 2) * 100;
 
-                $ingresosTotalesMes = $sumaIngresosMes + $movimientoIngresoMes;
-                $margenGananciaMes = $ingresosTotalesMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $ingresosTotalesMes, 2) * 100;
-                $roiMes = $sumaEgresosMes == 0 ? 0 : round((($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes) / $sumaEgresosMes, 2) * 100;
+        $existePeriodo = ResumenMensual::where('periodo', $hoy->format('m/Y'))->get()->first();
 
-                ResumenMensual::create([
-                    'periodo' => $hoy->format('m/Y'),
-                    'cantidad' => $cantidadVentasMes,
-                    'ingresos' => intval($ingresosTotalesMes),
-                    'egresos' => intval($sumaEgresosMes),
-                    'utilidad_neta' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
-                    'margen_ganancia' => round($margenGananciaMes, 2),
-                    'roi' => round($roiMes, 2)
-                ]);
-            }
+        if (!$existePeriodo) {
+            ResumenMensual::create([
+                'periodo' => $hoy->format('m/Y'),
+                'cantidad' => $cantidadVentasMes,
+                'ingresos' => intval($ingresosTotalesMes),
+                'egresos' => intval($sumaEgresosMes),
+                'utilidad_neta' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
+                'margen_ganancia' => round($margenGananciaMes, 2),
+                'roi' => round($roiMes, 2)
+            ]);
+            
+        } else {
+            $existePeriodo->update([
+                'cantidad' => $cantidadVentasMes,
+                'ingresos' => intval($ingresosTotalesMes),
+                'egresos' => intval($sumaEgresosMes),
+                'utilidad_neta' => intval(($sumaIngresosMes + $movimientoIngresoMes) - $sumaEgresosMes),
+                'margen_ganancia' => round($margenGananciaMes, 2),
+                'roi' => round($roiMes, 2)
+            ]);
         }
         
         $resumenMesActual = ResumenMensual::where('periodo', $hoy->format('m/Y'))->get()->first();
 
-        if ($resumenMesActual) {
-            $ventasMesCompletas = [
-                'cantidad_ventas' => $resumenMesActual->cantidad,
-                'ingresos' => $resumenMesActual->ingresos,
-                'egresos' => $resumenMesActual->egresos,
-                'diferencia' => $resumenMesActual->utilidad_neta,
-                'margen_ganancia' => $resumenMesActual->margen_ganancia,
-                'roi' => $resumenMesActual->roi,
-            ];
-        } else {
-            $ventasMesCompletas = [
-                'cantidad_ventas' => 0,
-                'ingresos' => 0,
-                'egresos' => 0,
-                'diferencia' => 0,
-                'margen_ganancia' => 0,
-                'roi' => 0,
-            ];
-        }
+        $ventasMesCompletas = [
+            'cantidad_ventas' => $resumenMesActual->cantidad,
+            'ingresos' => $resumenMesActual->ingresos,
+            'egresos' => $resumenMesActual->egresos,
+            'diferencia' => $resumenMesActual->utilidad_neta,
+            'margen_ganancia' => $resumenMesActual->margen_ganancia,
+            'roi' => $resumenMesActual->roi,
+        ];
 
         $ventas = ResumenMensual::all();
 

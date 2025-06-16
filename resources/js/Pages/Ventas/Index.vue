@@ -310,7 +310,7 @@ const eliminarVenta = (id) => {
                                 </tr>
                                 <!-- Si no hay datos en la consulta -->
                                 <tr v-if="resultado_consulta.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="8">
+                                    <td class="px-4 py-2 text-center" colspan="10">
                                         No hay ventas registradas.
                                     </td>
                                 </tr>
