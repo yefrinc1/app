@@ -74,6 +74,15 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink :href="route('consultar-inventario')">🧰 Consultar Inventario </DropdownLink>
                                     </template>
                                 </DropDownMenu>
+                                <DropDownMenu align="right" width="48">
+                                    <template #trigger>
+                                        📈 Estadisticas
+                                    </template>
+                                    <template #content>
+                                        <DropdownLink :href="route('estadistica-juegos')"> 💱 Estadistica Juegos </DropdownLink>
+                                        <DropdownLink :href="route('resumen-mensual')">📝 Resumen Mensual </DropdownLink>
+                                    </template>
+                                </DropDownMenu>
                                 <NavLink :href="route('notificaciones.index')" :active="route().current('notificaciones.index')">
                                     🔔
                                 </NavLink>
@@ -173,6 +182,13 @@ const showingNavigationDropdown = ref(false);
                         <ResponsiveNavLink :href="route('pagos.create')" class="pl-4">💰 Pagos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('ventas.index')" class="pl-4">🛍️ Consultar Ventas</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('consultar-inventario')" class="pl-4">🧰 Consultar Inventario</ResponsiveNavLink>
+                    </div>
+
+                    <!-- 📈 Estadisticas -->
+                    <div class="pt-2 pb-3 space-y-1">
+                        <div class="px-4 text-sm text-gray-500">📈 Estadisticas</div>
+                        <ResponsiveNavLink :href="route('estadistica-juegos')" class="pl-4">💱 Estadistica Juegos</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('resumen-mensual')" class="pl-4">📝 Resumen Mensual</ResponsiveNavLink>
                     </div>
 
                     <!-- 🔔 Notificaciones -->
