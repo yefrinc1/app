@@ -37,7 +37,7 @@ class CodigoVerificacionController extends Controller
     
             $codigoRespaldo = 1;
             foreach ($codigos as $clave => $codigo) {
-                if ($clave > 1) {
+                if ($clave > 0 && $codigoRespaldo == 1) {
                     $codigoRespaldo = 0;
                 }
                 CodigoVerificacion::create([
@@ -54,7 +54,7 @@ class CodigoVerificacionController extends Controller
     
             $codigoRespaldo = 1;
             foreach ($codigos as $clave => $codigo) {
-                if ($clave > 1) {
+                if ($clave > 0 && $codigoRespaldo == 1) {
                     $codigoRespaldo = 0;
                 }
                 CodigoVerificacion::create([

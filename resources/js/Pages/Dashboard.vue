@@ -49,7 +49,7 @@ if (props.mensaje != '') {
 const getColor = (valor) => {
   if (valor < 100) {
     return '#F44336'; // Rojo
-  } else if (valor >= 100 && valor <= 109) {
+  } else if (valor >= 100 && valor <= 129) {
     return '#4CAF50'; // Verde
   } else {
     return '#2196F3'; // Azul

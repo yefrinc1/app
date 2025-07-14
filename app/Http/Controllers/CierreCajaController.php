@@ -65,7 +65,7 @@ class CierreCajaController extends Controller
         ->whereDate('created_at', $fecha)
         ->sum('valor');
 
-        $saldoFinal = $saldoInicial + ($ingresos - $egresos);
+        $saldoFinal = $saldoInicial + ($ingresos + $movimientoIngresoHoy - $egresos);
     
         return Inertia::render('CierreCaja/Create', [
             'ventas' => $ventas,
