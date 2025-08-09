@@ -123,6 +123,23 @@ const irAPagina = (url) => {
         preserveState: true,
     });
 };
+
+const sumarSaldo = (tipo) => {
+    if (tipo === 'usd') {
+        // Convierte ambos valores a número y suma
+        form.saldo_usd = (
+            parseFloat(form.saldo_usd) || 0
+        ) + (
+            parseFloat(prompt('¿Cuánto quieres sumar al saldo USD?')) || 0
+        );
+    } else if (tipo === 'cop') {
+        form.saldo_cop = (
+            parseFloat(form.saldo_cop) || 0
+        ) + (
+            parseFloat(prompt('¿Cuánto quieres sumar al saldo COP?')) || 0
+        );
+    }
+};
 </script>
 
 <template>
@@ -243,22 +260,28 @@ const irAPagina = (url) => {
                         <InputError :message="form.errors.fecha_nacimiento" class="mt-2" />
                     </div>
 
-                    <div class="mt-6">
-                        <InputLabel for="saldo_usd" value="Saldo USD" />
-
-                        <TextInput id="saldo_usd" ref="saldo_usd" v-model="form.saldo_usd" type="text"
-                            class="mt-1 block w-full" autocomplete="saldo_usd"/>
-
-                        <InputError :message="form.errors.saldo_usd" class="mt-2" />
+                    <div class="mt-6 flex items-end gap-2">
+                        <div class="w-full">
+                            <InputLabel for="saldo_usd" value="Saldo USD" />
+                            <TextInput id="saldo_usd" ref="saldo_usd" v-model="form.saldo_usd" type="text"
+                                class="mt-1 block w-full" autocomplete="saldo_usd"/>
+                            <InputError :message="form.errors.saldo_usd" class="mt-2" />
+                        </div>
+                        <PrimaryButton @click="sumarSaldo('usd')" type="button" class="mb-1">
+                            <i class="fas fa-plus"></i>
+                        </PrimaryButton>
                     </div>
 
-                    <div class="mt-6">
-                        <InputLabel for="saldo_cop" value="Saldo COP" />
-
-                        <TextInput id="saldo_cop" ref="saldo_cop" v-model="form.saldo_cop" type="text"
-                            class="mt-1 block w-full" autocomplete="saldo_cop"/>
-
-                        <InputError :message="form.errors.saldo_cop" class="mt-2" />
+                    <div class="mt-6 flex items-end gap-2">
+                        <div class="w-full">
+                            <InputLabel for="saldo_cop" value="Saldo COP" />
+                            <TextInput id="saldo_cop" ref="saldo_cop" v-model="form.saldo_cop" type="text"
+                                class="mt-1 block w-full" autocomplete="saldo_cop"/>
+                            <InputError :message="form.errors.saldo_cop" class="mt-2" />
+                        </div>
+                        <PrimaryButton @click="sumarSaldo('cop')" type="button">
+                            <i class="fas fa-plus"></i>
+                        </PrimaryButton>
                     </div>
 
                     <div class="block mt-6">

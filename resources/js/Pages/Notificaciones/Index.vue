@@ -4,6 +4,7 @@ import { Head, useForm } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import Swal from 'sweetalert2';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     notificaciones: Object,
@@ -73,7 +74,10 @@ const completarNotificacion = (id) => {
                                         {{ i + 1 }}
                                     </td>
                                     <td v-if="notificacion.tipo == 'crear_codigos'" class="px-4 py-2">
-                                        {{ notificacion.mensaje }} para el correo <strong>{{ notificacion.correo }}</strong>
+                                        {{ notificacion.mensaje }} para el correo 
+                                        <Link :href="route('codigo-verificacion.create', { correo: notificacion.correo })">
+                                            <strong class="text-gray-700 underline cursor-pointer">{{ notificacion.correo }}</strong>
+                                        </Link>
                                     </td>
                                     <td v-if="notificacion.tipo == 'agotado_juego'" class="px-4 py-2">
                                         {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>

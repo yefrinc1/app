@@ -195,4 +195,5 @@ return [
 
     'presupuesto_diario' => 700000,
     'presupuesto_mensual' => 22000000,
+    'porcentaje_comision' => 0.06,
 ];

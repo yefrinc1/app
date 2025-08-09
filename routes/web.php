@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/correo-juegos/crear-juego-manual', [CorreoJuegoController::class, 'crearJuegoManual'])->name('correo-juegos.crear-juego-manual');
     Route::post('/correo-juegos/store-manual', [CorreoJuegoController::class, 'storeManual'])->name('correo-juegos.store-manual');
     Route::resource('/correo-juegos', CorreoJuegoController::class);
+    Route::get('/ventas/comprobar-existencia-juego', [VentasController::class, 'comprobarExistenciaJuegoApi'])->name('ventas.comprobar-existencia-juego');
     Route::resource('/ventas', VentasController::class);
     Route::get('/buscar-juegos', [VentasController::class, 'buscarJuego'])->name('buscar-juegos');
     Route::resource('/notificaciones', NotificacionesController::class);

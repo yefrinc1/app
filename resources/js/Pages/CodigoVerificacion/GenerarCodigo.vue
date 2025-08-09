@@ -33,6 +33,7 @@ const codigoEncontrado = ref(false);
 const ultimoCodigo = ref();
 const codigoRef = ref(null); // Referencia al h2
 const textoCopiado = ref(false); // Referencia al h2
+const disabledButton = ref(true); // Deshabilitar botón inicialmente
 
 // Observa cambios en modelValue y actualiza searchQuery
 watch(
@@ -60,6 +61,7 @@ const buscarCorreos = async () => {
         if (sugerencias.value.length == 1) {
             sugerencias.value = sugerencias.value[0]['correo'] == form.correo ? [] : sugerencias.value;
         } else if (sugerencias.value.length == 0) {
+            disabledButton.value = true;
             form.errors.correo = 'No se encontró ningún correo';
         }
     } catch (error) {
@@ -71,6 +73,7 @@ const buscarCorreos = async () => {
 const seleccionarCorreo = (correo) => {
     form.correo = correo.correo; // Asigna el valor seleccionado
     sugerencias.value = []; // Oculta la lista
+    disabledButton.value = false;
     emit("update:modelValue", correo.correo); // Actualiza el v-model
 };
 
@@ -191,7 +194,7 @@ const copiarCodigo = async () => {
                         </div>
 
                         <div class="flex items-center gap-4">
-                            <PrimaryButton>
+                            <PrimaryButton :disabled="disabledButton">
                                 Generar
                             </PrimaryButton>
                         </div>

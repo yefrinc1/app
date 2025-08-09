@@ -2,6 +2,7 @@
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { defineProps } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import { useForm, Head, usePage } from '@inertiajs/vue3';
@@ -142,6 +143,40 @@ const copiarCodigo = async () => {
     }
 };
 
+const verificarInventario = async () => {
+    swalWithTailwind.fire({
+        title: 'Verificando inventario...',
+        didOpen: () => {
+            swalWithTailwind.showLoading();
+        },
+        timer: 300,
+    }).then(async () => {
+        try {
+            const { data } = await axios.get(route("ventas.comprobar-existencia-juego"), {
+                params: { 
+                    juego: form.juego, 
+                    tipo_cuenta: form.tipo_cuenta, 
+                    consola: form.consola 
+                },
+            });
+
+            if (Object.keys(data).length !== 0) {
+                swalWithTailwind.fire({
+                    title: 'El juego está disponible en el inventario',
+                    icon: "success",
+                });
+            } else {
+                swalWithTailwind.fire({
+                    title: 'El juego no está disponible en el inventario',
+                    icon: "error",
+                });
+            }
+        } catch (error) {
+            console.error("Error verificando inventario:", error);
+        }
+    });
+};
+
 </script>
 
 <template>
@@ -179,7 +214,7 @@ const copiarCodigo = async () => {
 
                                 <ul
                                     v-if="form.juego !== '' && sugerencias.length !== 0 && juegoEncontrado == false"
-                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md"
+                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md z-50"
                                 >
                                     <li
                                         v-for="Datosjuego in sugerencias"
@@ -212,21 +247,25 @@ const copiarCodigo = async () => {
                             <InputError class="mt-2" :message="form.errors.tipo_cuenta" />
                         </div>
 
-                        <div>
-                            <InputLabel for="consola" value="Consola" />
-
-                            <select
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                v-model="form.consola" 
-                                id="consola"
-                                required
-                            >
-                                <option value="" >Selecciona una consola</option>
-                                <option value="PS4">PS4</option>
-                                <option value="PS5">PS5</option>
-                            </select>
-                        
-                            <InputError class="mt-2" :message="form.errors.consola" />
+                        <div class="flex items-end gap-4">
+                            <div class="w-full">
+                                <InputLabel for="consola" value="Consola" />
+                                <select
+                                    class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
+                                    v-model="form.consola" 
+                                    id="consola"
+                                    required
+                                >
+                                    <option value="" >Selecciona una consola</option>
+                                    <option value="PS4">PS4</option>
+                                    <option value="PS5">PS5</option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.consola" />
+                            </div>
+                            <SecondaryButton v-if="form.juego && form.tipo_cuenta && form.consola"
+                            @click="verificarInventario">
+                                Verificar <i class="fas fa-clipboard-check ml-2"></i>
+                            </SecondaryButton>
                         </div>
 
                         <div>
@@ -332,7 +371,8 @@ const copiarCodigo = async () => {
                         <h2 ref="codigoRef" class="text-lg font-medium text-gray-900 ml-4">
                             ¡IMPORTANTE! Lee esto antes de continuar con los pasos 🛑 <br><br>
                             1️⃣ El código de verificación es de un solo uso. Utilízalo exclusivamente en la consola donde vas a descargar el juego. <br>
-                            2️⃣ Inicia sesión solo una vez. No modifiques los datos de la cuenta para evitar inconvenientes. <br><br>
+                            2️⃣ No inicies sesión como invitado - El juego no funcionará si lo haces. <br>
+                            3️⃣ No modifiques los datos de la cuenta para evitar inconvenientes. <br><br>
 
                             {{ cuenta_juego.juego }} <br>
                             Cuenta: {{ cuenta_juego.tipo_cuenta }} {{ cuenta_juego.consola }} <br><br>

@@ -73,7 +73,7 @@ const completarPago = (id, nombre, valor) => {
                                 <tr class="bg-gray-100 border-b">
                                     <th class="px-4 py-2 text-left">Nombre</th>
                                     <th class="px-4 py-2 text-left">Ventas</th>
-                                    <th class="px-4 py-2 text-left">Porcentaje 5%</th>
+                                    <th class="px-4 py-2 text-left">Porcentaje 6%</th>
                                     <th class="px-4 py-2 text-left">Fecha Ultimo Pago</th>
                                     <th class="px-4 py-2 text-center">Accion</th>
                                 </tr>

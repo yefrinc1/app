@@ -40,13 +40,14 @@ class PagoController extends Controller
                 ->sum('precio');
 
             $datosUsuario = User::findOrFail($usuario->id_usuario);
+            $porcentajeComision = config('app.porcentaje_comision');
         
             $ventasDesdeUltimoPago[] = [
                 'id_usuario' => $usuario->id_usuario,
                 'nombre' => $datosUsuario->name,
                 'fecha_ultimo_pago' => $ultimoPago?->created_at,
                 'total_ventas' => (int) $sumaVentas,
-                'porcentaje' => (int) ($sumaVentas * 0.05),
+                'porcentaje' => (int) ($sumaVentas * $porcentajeComision),
             ];
         }
     
@@ -68,10 +69,5 @@ class PagoController extends Controller
         ]);
 
         return redirect()->back();
-    }
-
-    public function destroy(string $id)
-    {
-        
     }
 }

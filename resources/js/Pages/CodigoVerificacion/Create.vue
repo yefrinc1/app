@@ -12,10 +12,11 @@ import Swal from 'sweetalert2';
 
 const props = defineProps({
     modelValue: String,
+    correo: String
 });
 
 const form = useForm({
-    correo: "",
+    correo: props.correo,
     codigo: "",
 });
 
@@ -27,7 +28,7 @@ const swalWithTailwind = Swal.mixin({
 const emit = defineEmits(["update:modelValue"]);
 
 // Variables reactivas
-form.correo = ref(props.modelValue || "");
+form.correo = ref(props.correo || "");
 const sugerencias = ref([]);
 const contrasena = ref();
 const codigoVF = ref();
@@ -83,6 +84,28 @@ const seleccionarCorreo = async (correo) => {
         console.error("Error buscando codigo:", error);
     }
 };
+
+if (form.correo && form.correo !== null && form.correo !== "") {
+    (async () => {
+        try {
+            const { data } = await axios.get(route("buscar-correos"), {
+                params: { q: form.correo },
+            });
+            sugerencias.value = data;
+            if (sugerencias.value.length > 0) {
+                // Buscar el objeto que coincida con el correo
+                const encontrado = sugerencias.value.find(c => c.correo === form.correo);
+                if (encontrado) {
+                    seleccionarCorreo(encontrado);
+                }
+            } else {
+                form.errors.correo = 'No se encontró ningún correo';
+            }
+        } catch (error) {
+            console.error("Error buscando correos:", error);
+        }
+    })();
+}
 
 // Función para manejar el envío manualmente
 const submitForm = () => {

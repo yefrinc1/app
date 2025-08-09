@@ -25,8 +25,8 @@ class VentasController extends Controller
         // Si no hay ningún filtro, no hacemos la consulta
         if (!$juego && !$cliente && !$correo && !$fecha) {
             $resultadoConsulta = Ventas::with('correoJuego')
+            ->whereDate('created_at', Carbon::today())
             ->orderByDesc('created_at')
-            ->limit(50)
             ->get();
         } else {
             $resultadoConsulta = Ventas::with('correoJuego')
@@ -367,6 +367,32 @@ class VentasController extends Controller
         return redirect()->route('ventas.index', ['mensaje_edit' => $mensajeEdit]);
     }
 
+    public function comprobarExistenciaJuegoApi(Request $request)
+    {
+        $tipo_cuenta = $request->input('tipo_cuenta');
+        $consola = $request->input('consola');
+        $juego = $request->input('juego');
+
+        $correoJuego = $this->comprobarExistenciaJuego($tipo_cuenta, $consola, $juego);
+
+        if (!$correoJuego) {
+            $notificacionExiste = Notificaciones::where('juego', $juego)
+            ->where('tipo', 'crear_juego')
+            ->where('mensaje', "Se necesita crear el juego en cuenta $tipo_cuenta para $consola")
+            ->first();
+
+            if ($notificacionExiste == null) {
+                Notificaciones::create([
+                    'juego' => $juego,
+                    'tipo' => 'crear_juego',
+                    'mensaje' => "Se necesita crear el juego en cuenta $tipo_cuenta para $consola",
+                ]);
+            }
+        }
+
+        return response()->json($correoJuego);
+    }
+
     public function comprobarExistenciaJuego($tipo_cuenta, $consola, $juego)
     {
         $correoJuego = null;
@@ -399,7 +425,7 @@ class VentasController extends Controller
         $juegos = CorreoJuego::where('juego', 'like', "%{$query}%")
         ->select('juego')
         ->distinct()
-        ->limit(5)
+        ->limit(7)
         ->get();
     
         return response()->json($juegos);

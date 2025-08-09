@@ -16,9 +16,10 @@ class CodigoVerificacionController extends Controller
         return Inertia::render('CodigoVerificacion/Index');
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('CodigoVerificacion/Create');
+        $correo = $request->input('correo');
+        return Inertia::render('CodigoVerificacion/Create', ['correo' => $correo]);
     }
 
     public function store(Request $request)
