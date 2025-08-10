@@ -25,8 +25,8 @@ class VentasController extends Controller
         // Si no hay ningún filtro, no hacemos la consulta
         if (!$juego && !$cliente && !$correo && !$fecha) {
             $resultadoConsulta = Ventas::with('correoJuego')
-            ->whereDate('created_at', Carbon::today())
             ->orderByDesc('created_at')
+            ->limit(50)
             ->get();
         } else {
             $resultadoConsulta = Ventas::with('correoJuego')

@@ -34,7 +34,7 @@ const form = useForm({
     juego: "",
     cliente: "",
     correo: "",
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: "",
 });
 
 // Emitir cambios al padre
@@ -51,14 +51,14 @@ if (props.resultado_consulta && props.resultado_consulta.length > 0) {
     form.juego = props.filtros.juego
     form.cliente = props.filtros.cliente
     form.correo = props.filtros.correo
-    form.fecha = props.filtros.fecha || new Date().toISOString().slice(0, 10)
+    form.fecha = props.filtros.fecha
     sectionConsultar.value = true;
     window.location.href = '#section-resultado';
 } else {
     form.juego = props.filtros.juego
     form.cliente = props.filtros.cliente
     form.correo = props.filtros.correo
-    form.fecha = props.filtros.fecha || new Date().toISOString().slice(0, 10)
+    form.fecha = props.filtros.fecha
     
     swalWithTailwind.fire({
         title: 'No se encontro ninguna venta con estos filtros',

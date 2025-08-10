@@ -49,6 +49,7 @@ const buscarCorreos = async () => {
 
     if (form.correo.length < 1) {
         sugerencias.value = [];
+        disabledButton.value = false;
         return;
     }
 
@@ -59,6 +60,7 @@ const buscarCorreos = async () => {
         sugerencias.value = data;
 
         if (sugerencias.value.length == 1) {
+            disabledButton.value = sugerencias.value[0]['correo'] != form.correo;
             sugerencias.value = sugerencias.value[0]['correo'] == form.correo ? [] : sugerencias.value;
         } else if (sugerencias.value.length == 0) {
             disabledButton.value = true;
