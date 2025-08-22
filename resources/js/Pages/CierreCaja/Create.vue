@@ -46,6 +46,16 @@ const cerrarCaja = () => {
     form.post(route('cierre-caja.store'));
 };
 
+function formatoPrecio(precio) {
+    const esPositivo = precio >= 0;
+    const color = esPositivo ? 'text-green-600' : 'text-red-600';
+    const signo = esPositivo ? '+' : '-';
+    return {
+        texto: `${signo} $${Math.abs(precio)}`,
+        color
+    };
+}
+
 </script>
 
 <template>
@@ -87,7 +97,11 @@ const cerrarCaja = () => {
                                     <td class="px-4 py-2">{{ venta.tipo_cuenta }}</td>
                                     <td class="px-4 py-2">{{ venta.consola }}</td>
                                     <td class="px-4 py-2">{{ venta.medio_pago }}</td>
-                                    <td class="px-4 py-2">{{ venta.precio }}</td>
+                                    <td class="px-4 py-2">
+                                        <span :class="formatoPrecio(venta.precio).color">
+                                            {{ formatoPrecio(venta.precio).texto }}
+                                        </span>
+                                    </td>
                                 </tr>
                                 <tr v-if="ventas.length === 0">
                                     <td class="px-4 py-2 text-center" colspan="8">

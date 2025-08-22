@@ -34,11 +34,11 @@ class CierreCajaController extends Controller
     public function create(Request $request)
     {
         $fecha = $request->input('fecha', Carbon::today());
+
         $ventas = Ventas::whereDate('created_at', $fecha)
-        ->with('correoJuego')
-        ->get()
-        ->map(function ($venta) {
-            return [
+            ->with('correoJuego')
+            ->get()
+            ->map(fn($venta) => [
                 'cliente' => $venta->cliente,
                 'tipo_cuenta' => $venta->tipo_cuenta,
                 'consola' => $venta->consola,
@@ -48,8 +48,23 @@ class CierreCajaController extends Controller
                     'correo' => $venta->correoJuego->correo ?? null,
                     'juego' => $venta->correoJuego->juego ?? null,
                 ],
-            ];
-        });
+            ]);
+
+        $movimientos = Movimientos::whereDate('created_at', $fecha)
+            ->get()
+            ->map(fn($movimiento) => [
+                'cliente' => null,
+                'tipo_cuenta' => null,
+                'consola' => null,
+                'precio' => $movimiento->tipo === 'Ingreso' ? $movimiento->valor : -$movimiento->valor,
+                'medio_pago' => null,
+                'correoJuego' => [
+                    'correo' => $movimiento->observaciones,
+                    'juego' => $movimiento->descripcion,
+                ],
+            ]);
+
+        $ventasYMovimientos = $ventas->concat($movimientos);
 
         $ultimoCierre = CierreCaja::latest()->first();
         $saldoInicial = $ultimoCierre->saldo_final ?? 0;
@@ -57,7 +72,7 @@ class CierreCajaController extends Controller
         $ingresos = Ventas::whereDate('created_at', $fecha)
         ->sum('precio');
 
-        $movimientoIngresoHoy = Movimientos::whereDate('created_at', Carbon::today())
+        $movimientoIngresoHoy = Movimientos::whereDate('created_at', $fecha)
         ->where('tipo', 'Ingreso')
         ->sum('valor');
 
@@ -68,7 +83,7 @@ class CierreCajaController extends Controller
         $saldoFinal = $saldoInicial + ($ingresos + $movimientoIngresoHoy - $egresos);
     
         return Inertia::render('CierreCaja/Create', [
-            'ventas' => $ventas,
+            'ventas' => $ventasYMovimientos,
             'ingresos' => intval($ingresos + $movimientoIngresoHoy),
             'egresos' => intval($egresos),
             'saldo_inicial' => intval($saldoInicial),
