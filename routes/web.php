@@ -13,6 +13,7 @@ use App\Http\Controllers\EstadisticaController;
 use App\Http\Controllers\MovimientosController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\ProductosJumpsellerController;
 use App\Http\Controllers\VentasController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->name('consultar-inventario');
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
+    Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');
+    Route::delete('/productos-oferta-jumpseller/{id}/quitar-oferta', [ProductosJumpsellerController::class, 'quitarOferta'])->name('productos-oferta-jumpseller.quitar-oferta');
 });
 
 require __DIR__.'/auth.php';

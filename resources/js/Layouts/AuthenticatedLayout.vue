@@ -31,7 +31,7 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     📊 {{ $t('Dashboard') }}
                                 </NavLink>
-                                <DropDownMenu   align="right" width="48">
+                                <DropDownMenu align="right" width="48">
                                     <template #trigger>
                                         ✉️ Correos
                                     </template>
@@ -81,6 +81,14 @@ const showingNavigationDropdown = ref(false);
                                     <template #content>
                                         <DropdownLink :href="route('estadistica-juegos')"> 💱 Estadistica Juegos </DropdownLink>
                                         <DropdownLink :href="route('resumen-mensual')">📝 Resumen Mensual </DropdownLink>
+                                    </template>
+                                </DropDownMenu>
+                                <DropDownMenu align="right" width="48">
+                                    <template #trigger>
+                                        🧩 Jumpseller
+                                    </template>
+                                    <template #content>
+                                        <DropdownLink :href="route('productos-oferta-jumpseller')"> 🪅 Productos en Oferta </DropdownLink>
                                     </template>
                                 </DropDownMenu>
                                 <NavLink :href="route('notificaciones.index')" :active="route().current('notificaciones.index')">
@@ -189,6 +197,12 @@ const showingNavigationDropdown = ref(false);
                         <div class="px-4 text-sm text-gray-500">📈 Estadisticas</div>
                         <ResponsiveNavLink :href="route('estadistica-juegos')" class="pl-4">💱 Estadistica Juegos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('resumen-mensual')" class="pl-4">📝 Resumen Mensual</ResponsiveNavLink>
+                    </div>
+                    
+                    <!-- 🧩 Jumpseller -->
+                    <div class="pt-2 pb-3 space-y-1">
+                        <div class="px-4 text-sm text-gray-500">🧩 Jumpseller</div>
+                        <ResponsiveNavLink :href="route('productos-oferta-jumpseller')" class="pl-4">🪅 Productos en Oferta </ResponsiveNavLink>
                     </div>
 
                     <!-- 🔔 Notificaciones -->

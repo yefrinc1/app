@@ -73,17 +73,22 @@ const completarNotificacion = (id) => {
                                     <td class="px-4 py-2">
                                         {{ i + 1 }}
                                     </td>
-                                    <td v-if="notificacion.tipo == 'crear_codigos'" class="px-4 py-2">
-                                        {{ notificacion.mensaje }} para el correo 
-                                        <Link :href="route('codigo-verificacion.create', { correo: notificacion.correo })">
-                                            <strong class="text-gray-700 underline cursor-pointer">{{ notificacion.correo }}</strong>
-                                        </Link>
-                                    </td>
-                                    <td v-if="notificacion.tipo == 'agotado_juego'" class="px-4 py-2">
-                                        {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>
-                                    </td>
-                                    <td v-if="notificacion.tipo == 'crear_juego'" class="px-4 py-2">
-                                        {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>
+                                    <td class="px-4 py-2">
+                                        <template v-if="notificacion.tipo == 'crear_codigos'">
+                                            {{ notificacion.mensaje }} para el correo 
+                                            <Link :href="route('codigo-verificacion.create', { correo: notificacion.correo })">
+                                                <strong class="text-gray-700 underline cursor-pointer">{{ notificacion.correo }}</strong>
+                                            </Link>
+                                        </template>
+                                        <template v-else-if="notificacion.tipo == 'agotado_juego'">
+                                            {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>
+                                        </template>
+                                        <template v-else-if="notificacion.tipo == 'crear_juego'">
+                                            {{ notificacion.mensaje }} para el juego <strong>{{ notificacion.juego }}</strong>
+                                        </template>
+                                        <template v-else>
+                                            {{ notificacion.mensaje }}
+                                        </template>
                                     </td>
                                     <td class="px-4 py-2">
                                         {{ notificacion.created_at }}

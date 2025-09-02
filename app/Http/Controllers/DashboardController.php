@@ -160,7 +160,7 @@ class DashboardController extends Controller
                 DB::raw('periodo AS fecha'),
                 DB::raw("ROUND((ingresos / $presupuestoMensual) * 100, 2) AS suma_dividida")
             )
-            ->orderBy('periodo')
+            ->orderBy('id', 'DESC')
             ->limit(8)
             ->get();
         
