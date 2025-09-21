@@ -53,14 +53,14 @@ class CierreCajaController extends Controller
         $movimientos = Movimientos::whereDate('created_at', $fecha)
             ->get()
             ->map(fn($movimiento) => [
-                'cliente' => null,
+                'cliente' => $movimiento->observaciones,
                 'tipo_cuenta' => null,
                 'consola' => null,
                 'precio' => $movimiento->tipo === 'Ingreso' ? $movimiento->valor : -$movimiento->valor,
                 'medio_pago' => null,
                 'correoJuego' => [
-                    'correo' => $movimiento->observaciones,
-                    'juego' => $movimiento->descripcion,
+                    'correo' => $movimiento->descripcion,
+                    'juego' => $movimiento->tipo,
                 ],
             ]);
 
@@ -80,12 +80,17 @@ class CierreCajaController extends Controller
         ->whereDate('created_at', $fecha)
         ->sum('valor');
 
-        $saldoFinal = $saldoInicial + ($ingresos + $movimientoIngresoHoy - $egresos);
-    
+        $retiroUtilidades = Movimientos::where('tipo', 'Retiro Utilidades')
+        ->whereDate('created_at', $fecha)
+        ->sum('valor');
+
+        $saldoFinal = $saldoInicial + ($ingresos + $movimientoIngresoHoy - $egresos - $retiroUtilidades);
+
         return Inertia::render('CierreCaja/Create', [
             'ventas' => $ventasYMovimientos,
             'ingresos' => intval($ingresos + $movimientoIngresoHoy),
             'egresos' => intval($egresos),
+            'retiro_utilidades' => intval($retiroUtilidades),
             'saldo_inicial' => intval($saldoInicial),
             'saldo_final' => intval($saldoFinal),
             'fecha' => $fecha,

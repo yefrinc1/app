@@ -14,6 +14,7 @@ const props = defineProps({
     ventas: Object,
     ingresos: Object,
     egresos: Object,
+    retiro_utilidades: Object,
     saldo_inicial: Number,
     saldo_final: Number,
     fecha: Date,
@@ -127,6 +128,7 @@ function formatoPrecio(precio) {
                                     <th class="px-4 py-2 text-left">Caja Inicial</th>
                                     <th class="px-4 py-2 text-left">Ingresos</th>
                                     <th class="px-4 py-2 text-left">Egresos</th>
+                                    <th class="px-4 py-2 text-left">Retiro Utilidades</th>
                                     <th class="px-4 py-2 text-left">Caja Final</th>
                                 </tr>
                             </thead>
@@ -135,6 +137,7 @@ function formatoPrecio(precio) {
                                     <td class="px-4 py-2">$ {{ saldo_inicial }}</td>
                                     <td class="px-4 py-2">$ {{ ingresos }}</td>
                                     <td class="px-4 py-2">$ {{ egresos }}</td>
+                                    <td class="px-4 py-2">$ {{ retiro_utilidades }}</td>
                                     <td class="px-4 py-2">$ {{ saldo_final }}</td>
                                 </tr>
                             </tbody>

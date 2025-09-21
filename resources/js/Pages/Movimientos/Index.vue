@@ -201,6 +201,7 @@ const formatearFecha = (fecha) => {
                             <option value="">Seleccione un tipo</option>
                             <option value="Ingreso">Ingreso</option>
                             <option value="Egreso">Egreso</option>
+                            <option value="Retiro Utilidades">Retiro Utilidades</option>
                         </select>
                     
                         <InputError class="mt-2" :message="form.errors.tipo" />
@@ -263,6 +264,7 @@ const formatearFecha = (fecha) => {
                             <option value="">Seleccione un tipo</option>
                             <option value="Ingreso">Ingreso</option>
                             <option value="Egreso">Egreso</option>
+                            <option value="Retiro Utilidades">Retiro Utilidades</option>
                         </select>
                     
                         <InputError class="mt-2" :message="form.errors.tipo" />
