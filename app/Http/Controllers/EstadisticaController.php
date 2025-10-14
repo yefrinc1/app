@@ -46,7 +46,7 @@ class EstadisticaController extends Controller
     }
 
     public function resumenMensual(){
-        $resumenMensual = ResumenMensual::paginate(10);
+        $resumenMensual = ResumenMensual::orderByDesc('id')->paginate(10);
         return Inertia::render('Estadistica/ResumenMensual', ['resumen_mensual' => $resumenMensual]);
     }
 }

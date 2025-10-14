@@ -53,6 +53,11 @@ const quitarHijo = (id) => {
     });
 };
 
+const formatearFecha = (fecha) => {
+  if (!fecha) return "";
+  return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(fecha));
+};
+
 </script>
 
 <template>
@@ -74,6 +79,7 @@ const quitarHijo = (id) => {
                                     <th class="px-4 py-2 text-left">Correo</th>
                                     <th class="px-4 py-2 text-left">Contraseña</th>
                                     <th class="px-4 py-2 text-left">Juego</th>
+                                    <th class="px-4 py-2 text-left">Fecha Nacimiento</th>
                                     <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
@@ -84,6 +90,7 @@ const quitarHijo = (id) => {
                                     <td class="px-4 py-2">{{ correo.correo }} </td>
                                     <td class="px-4 py-2">{{ correo.contrasena }}</td>
                                     <td class="px-4 py-2">{{ correo.juego }}</td>
+                                    <td class="px-4 py-2">{{ formatearFecha(correo.fecha_nacimiento) }}</td>
                                     <td class="px-4 py-2 flex justify-center space-x-2">
                                         <DangerButton @click="quitarHijo(correo.id)">
                                             <i class="fa-solid fa-trash"></i>

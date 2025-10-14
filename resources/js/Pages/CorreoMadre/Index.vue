@@ -117,6 +117,11 @@ const formatearFecha = (fecha) => {
   return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(fecha));
 };
 
+const formatearSaldo = (valor) => {
+    if (valor === null || valor === undefined || isNaN(valor)) return "0.00";
+    return Number(valor).toFixed(2);
+};
+
 const irAPagina = (url) => {
     form.get(url, {
         preserveScroll: false,
@@ -132,6 +137,8 @@ const sumarSaldo = (tipo) => {
         ) + (
             parseFloat(prompt('¿Cuánto quieres sumar al saldo USD?')) || 0
         );
+
+        form.saldo_usd = formatearSaldo(form.saldo_usd);
     } else if (tipo === 'cop') {
         form.saldo_cop = (
             parseFloat(form.saldo_cop) || 0

@@ -15,9 +15,7 @@ use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\ProductosJumpsellerController;
 use App\Http\Controllers\VentasController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');
     Route::delete('/productos-oferta-jumpseller/{id}/quitar-oferta', [ProductosJumpsellerController::class, 'quitarOferta'])->name('productos-oferta-jumpseller.quitar-oferta');
+    Route::get('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductos'])->name('productos-sincronizar');
+    Route::patch('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductosUpdate'])->name('productos-sincronizar.update');
 });
 
 require __DIR__.'/auth.php';

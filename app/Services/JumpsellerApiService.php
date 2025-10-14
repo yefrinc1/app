@@ -18,6 +18,25 @@ class JumpsellerApiService
         $this->ofertaCategoriaId = env('JUMPSELLER_OFERTAS_CATEGORY_ID');
     }
 
+    public function getProductoAll($limit = 50, $page = 1)
+    {
+        $query = [
+            'limit' => $limit,
+            'page' => $page,
+        ];
+
+        $response = $this->client->get("products.json",  [
+            'query' => $query
+        ]);
+        return json_decode($response->getBody(), true);
+    }
+
+    public function getProudctoAllCount()
+    {
+        $response = $this->client->get("products/count.json");
+        return json_decode($response->getBody(), true);
+    }
+
     public function getProductoId($productId)
     {
         $response = $this->client->get("products/{$productId}.json");

@@ -11,14 +11,15 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 
 const props = defineProps({
     correosGlobales: Array,
+    idUltimaMadre: Number,
 });
 
 const form = useForm({
     id_correo_globales: '',
-    contrasena: '',
-    saldo_usd: '',
-    saldo_cop: '',
-    fecha_nacimiento: '',
+    contrasena: props.idUltimaMadre ? `madre${props.idUltimaMadre + 1}oficial` : 'madreoficial1',
+    saldo_usd: 0,
+    saldo_cop: 0,
+    fecha_nacimiento: '2001-01-01',
     codigo: '',
 });
 const selectedOption = ref("");

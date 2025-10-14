@@ -244,6 +244,7 @@ class CorreoJuegoController extends Controller
 
         if (trim($request->codigo) != '') {
             $codigos = CodigoVerificacion::separarCodigos($request->codigo);
+            CodigoVerificacion::where('id_correo_juego', $correoJuego->id)->delete();
 
             $codigoRespaldo = 1;
             foreach ($codigos as $clave => $codigo) {

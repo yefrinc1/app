@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CorreoJuego;
 use App\Models\Notificaciones;
 use App\Services\JumpsellerApiService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ProductosJumpsellerController extends Controller
@@ -246,5 +247,68 @@ class ProductosJumpsellerController extends Controller
         }
 
         return redirect()->back()->with('mensaje', $t_mensaje)->with('tipo', $t_tipo);
+    }
+
+    public function sincronizarProductos(JumpsellerApiService $jumpseller){
+        $numeroProductos = $jumpseller->getProudctoAllCount();
+
+        if ($numeroProductos['count'] === 0) {
+            return response()->json(['message' => 'No hay productos en oferta'], 404);
+        }
+
+        $total = $numeroProductos['count'];
+        $porPagina = 100;
+        $paginas = (int) ceil($total / $porPagina);
+
+        $todosLosProductosJumpseller = [];
+
+        for ($i = 1; $i <= $paginas; $i++) {
+            $productos = $jumpseller->getProductoAll($porPagina, $i);
+            if (empty($productos)) {
+                continue;
+            }
+
+            foreach ($productos as $producto) {
+                $todosLosProductosJumpseller[] = $producto['product']['name'];
+            }
+        }
+
+        $todosLosJuegos = CorreoJuego::distinct()->pluck('juego')->toArray();
+
+        $juegosConEstado = [];
+
+        foreach ($todosLosJuegos as $juego) {
+            if (!in_array($juego, $todosLosProductosJumpseller)) {
+                $juegosConEstado[] = [
+                    'nombre' => $juego,
+                    'estado' => 'Pendiente de sincronización'
+                ];
+            }
+        }
+
+        sort($todosLosProductosJumpseller, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return Inertia::render('ProductosJumpseller/Sincronizar', [
+            'juegos' => $juegosConEstado,
+            'juegosJumpseller' => $todosLosProductosJumpseller,
+            'mensaje' => session('mensaje'),
+            'tipo' => session('tipo', 'success'),
+        ]);
+    }
+
+    public function sincronizarProductosUpdate(Request $request){
+        $request->validate([
+            'juego' => 'required',
+            'juego_jumpseller' => 'required',
+        ]);
+
+        $correos = CorreoJuego::where('juego', $request->juego)->get();
+
+        foreach ($correos as $correo) {
+            $correo->juego = $request->juego_jumpseller;
+            $correo->save();
+        }
+
+        return redirect()->back()->with('mensaje', 'Juego sincronizado correctamente')->with('tipo', 'success');
     }
 }

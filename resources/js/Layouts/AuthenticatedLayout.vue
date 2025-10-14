@@ -89,6 +89,7 @@ const showingNavigationDropdown = ref(false);
                                     </template>
                                     <template #content>
                                         <DropdownLink :href="route('productos-oferta-jumpseller')"> 🪅 Productos en Oferta </DropdownLink>
+                                        <DropdownLink :href="route('productos-sincronizar')"> 🔃 Sincronizar Productos </DropdownLink>
                                     </template>
                                 </DropDownMenu>
                                 <NavLink :href="route('notificaciones.index')" :active="route().current('notificaciones.index')">
@@ -203,6 +204,7 @@ const showingNavigationDropdown = ref(false);
                     <div class="pt-2 pb-3 space-y-1">
                         <div class="px-4 text-sm text-gray-500">🧩 Jumpseller</div>
                         <ResponsiveNavLink :href="route('productos-oferta-jumpseller')" class="pl-4">🪅 Productos en Oferta </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('productos-sincronizar')" class="pl-4">🔃 Sincronizar Productos </ResponsiveNavLink>
                     </div>
 
                     <!-- 🔔 Notificaciones -->

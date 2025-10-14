@@ -42,7 +42,8 @@ class CorreoMadreController extends Controller
     public function create()
     {
         $correosGlobales = CorreoGlobales::where('disponible', 1)->take(30)->latest()->get();
-        return Inertia::render('CorreoMadre/Create', ['correosGlobales' => $correosGlobales]);
+        $idUltimaMadre = CorreoMadre::latest()->first()?->id ?? 0;
+        return Inertia::render('CorreoMadre/Create', ['correosGlobales' => $correosGlobales, 'idUltimaMadre' => $idUltimaMadre]);
     }
 
     /**
