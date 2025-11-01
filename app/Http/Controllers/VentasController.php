@@ -84,8 +84,8 @@ class VentasController extends Controller
                 $licencia = "primaria_ps4";
 
                 $correoJuego = CorreoJuego::where('juego', $request->juego)
-                ->where('primaria_ps4', '<', 2)
-                ->where('primaria_ps5', '<=', 1)
+                ->where('primaria_ps4', '=', 1)
+                ->where('secundaria', '=', 0)
                 ->where('disponible', 1)
                 ->orderBy('secundaria')
                 ->orderBy('id')
@@ -103,8 +103,8 @@ class VentasController extends Controller
                 $licencia = "primaria_ps5";
 
                 $correoJuego = CorreoJuego::where('juego', $request->juego)
-                ->where('primaria_ps5', '<', 2)
-                ->where('primaria_ps4', '<=', 1)
+                ->where('primaria_ps5', '=', 1)
+                ->where('secundaria', '=', 0)
                 ->where('disponible', 1)
                 ->orderBy('secundaria')
                 ->orderBy('id')
