@@ -120,131 +120,118 @@ class ProductosJumpsellerController extends Controller
         $categorias = $producto['product']['categories'];
         $variantes = $producto['product']['variants'];
         $nombreJuego = $producto['product']['name'];
-        $correoJuego = CorreoJuego::where('juego', $nombreJuego)
-            ->where('disponible', true)
-            ->get();
 
-        if ($correoJuego->isEmpty()) {
-            Notificaciones::create([
-                'tipo' => 'coincidencia_juego',
-                'juego' => $nombreJuego,
-                'mensaje' => "No se encontraron juegos que coincidan con el nombre: $nombreJuego",
-            ]);
-            $t_mensaje = "No se encontraron juegos que coincidan con el nombre: $nombreJuego";
-            $t_tipo = 'error';
-        } else {
-            // Filtra la categoría de ofertas
-            $categoriasSinOfertas = array_filter($categorias, function ($categoria) use ($ofertasCategoriaId) {
-                return $categoria['id'] != $ofertasCategoriaId;
-            });
+        // Filtra la categoría de ofertas
+        $categoriasSinOfertas = array_filter($categorias, function ($categoria) use ($ofertasCategoriaId) {
+            return $categoria['id'] != $ofertasCategoriaId;
+        });
 
-            // Convierte los IDs al formato requerido por la API
-            $categoriasParaApi = array_map(function ($categoria) {
-                return ['id' => $categoria['id']];
-            }, $categoriasSinOfertas);
+        // Convierte los IDs al formato requerido por la API
+        $categoriasParaApi = array_map(function ($categoria) {
+            return ['id' => $categoria['id']];
+        }, $categoriasSinOfertas);
 
-            $variantesParaApi = [];
-            $entroSecundaria = false;
-            $juegoExisteSecundariaPs4 = null;
-            $juegoExisteSecundariaPs5 = null;
-            $juegoExistePrimaria = null;
+        $variantesParaApi = [];
+        $entroSecundaria = false;
+        $juegoExisteSecundariaPs4 = null;
+        $juegoExisteSecundariaPs5 = null;
+        $juegoExistePrimaria = null;
 
-            foreach ($variantes as $variante) {
-                $precioCompare = $variante['compare_at_price'] ?? null;
-                $idVariante = $variante['id'] ?? null;
-                $cuenta = null;
-                $consola = null;
+        foreach ($variantes as $variante) {
+            $precioCompare = $variante['compare_at_price'] ?? null;
+            $idVariante = $variante['id'] ?? null;
+            $cuenta = null;
+            $consola = null;
 
-                foreach ($variante['options'] as $opcion) {
-                    if ($opcion['product_option_id'] == $idCuenta) {
-                        $cuenta = $opcion['product_option_value_id'];
-                    }
-                    if ($opcion['product_option_id'] == $idConsola) {
-                        $consola = $opcion['product_option_value_id'];
-                    }
+            foreach ($variante['options'] as $opcion) {
+                if ($opcion['product_option_id'] == $idCuenta) {
+                    $cuenta = $opcion['product_option_value_id'];
                 }
+                if ($opcion['product_option_id'] == $idConsola) {
+                    $consola = $opcion['product_option_value_id'];
+                }
+            }
 
-                // Primaria PS4
-                if ($cuenta == $idPrimaria && $consola == $idPs4) {
-                    $juegoExistePrimaria = CorreoJuego::where('juego', $nombreJuego)
-                        ->where('primaria_ps4', '<', 2)
-                        ->where('disponible', true)
-                        ->first();
+            // Primaria PS4
+            if ($cuenta == $idPrimaria && $consola == $idPs4) {
+                $juegoExistePrimaria = CorreoJuego::where('juego', $nombreJuego)
+                    ->where('primaria_ps4', '<', 2)
+                    ->where('disponible', true)
+                    ->first();
 
-                    if ($juegoExistePrimaria) {
-                        $variantesParaApi[] = ['id' => $idVariante];
+                if ($juegoExistePrimaria) {
+                    $variantesParaApi[] = ['id' => $idVariante];
+                } else {
+                    if ($precioCompare != null) {
+                        $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
                     } else {
-                        if ($precioCompare != null) {
-                            $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
-                        } else {
-                            $variantesParaApi[] = ['id' => $idVariante];
-                        }
-                    }
-                }
-
-                // Primaria PS5
-                if ($cuenta == $idPrimaria && $consola == $idPs5) {
-                    $juegoExistePrimaria = CorreoJuego::where('juego', $nombreJuego)
-                        ->where('primaria_ps5', '<', 2)
-                        ->where('disponible', true)
-                        ->first();
-
-                    if ($juegoExistePrimaria) {
-                        $variantesParaApi[] = ['id' => $idVariante];
-                    } else {
-                        if ($precioCompare != null) {
-                            $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
-                        } else {
-                            $variantesParaApi[] = ['id' => $idVariante];
-                        }
-                    }
-                }
-
-                // Secundaria PS4
-                if ($cuenta == $idSecundaria && $consola == $idPs4) {
-                    $juegoExisteSecundariaPs4 = CorreoJuego::where('juego', $nombreJuego)
-                        ->where('primaria_ps4', '>=', 2)
-                        ->where('secundaria', '=', 0)
-                        ->where('disponible', true)
-                        ->first();
-
-                    $entroSecundaria = true;
-                    if ($juegoExisteSecundariaPs4) {
-                        $variantesParaApi[] = ['id' => $idVariante];
-                    }
-                }
-
-                // Secundaria PS5
-                if ($cuenta == $idSecundaria && $consola == $idPs5) {
-                    $juegoExisteSecundariaPs5 = CorreoJuego::where('juego', $nombreJuego)
-                        ->where('primaria_ps5', '>=', 2)
-                        ->where('secundaria', '=', 0)
-                        ->where('disponible', true)
-                        ->first();
-
-                    $entroSecundaria = true;
-                    if ($juegoExisteSecundariaPs5) {
                         $variantesParaApi[] = ['id' => $idVariante];
                     }
                 }
             }
 
-            if ($entroSecundaria && !$juegoExisteSecundariaPs5 && !$juegoExisteSecundariaPs4) {
-                $jumpseller->deleteProductoOptionValue($id, $idCuenta, $idSecundaria);
+            // Primaria PS5
+            if ($cuenta == $idPrimaria && $consola == $idPs5) {
+                $juegoExistePrimaria = CorreoJuego::where('juego', $nombreJuego)
+                    ->where('primaria_ps5', '<', 2)
+                    ->where('disponible', true)
+                    ->first();
+
+                if ($juegoExistePrimaria) {
+                    $variantesParaApi[] = ['id' => $idVariante];
+                } else {
+                    if ($precioCompare != null) {
+                        $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
+                    } else {
+                        $variantesParaApi[] = ['id' => $idVariante];
+                    }
+                }
             }
 
-            $data = [
-                'product' => [
-                    'categories' => $categoriasParaApi,
-                    'variants' => $variantesParaApi
-                ]
-            ];
+            // Secundaria PS4
+            if ($cuenta == $idSecundaria && $consola == $idPs4) {
+                $juegoExisteSecundariaPs4 = CorreoJuego::where('juego', $nombreJuego)
+                    ->where('primaria_ps4', '>=', 2)
+                    ->where('secundaria', '=', 0)
+                    ->where('disponible', true)
+                    ->first();
 
-            // Actualiza el producto enviando solo los IDs
-            $jumpseller->updateProducto($id, $data);
-            $t_mensaje = "El producto '$nombreJuego' ha sido quitado de la categoría de ofertas.";
-            $t_tipo = 'success';
+                $entroSecundaria = true;
+                if ($juegoExisteSecundariaPs4) {
+                    $variantesParaApi[] = ['id' => $idVariante];
+                }
+            }
+
+            // Secundaria PS5
+            if ($cuenta == $idSecundaria && $consola == $idPs5) {
+                $juegoExisteSecundariaPs5 = CorreoJuego::where('juego', $nombreJuego)
+                    ->where('primaria_ps5', '>=', 2)
+                    ->where('secundaria', '=', 0)
+                    ->where('disponible', true)
+                    ->first();
+
+                $entroSecundaria = true;
+                if ($juegoExisteSecundariaPs5) {
+                    $variantesParaApi[] = ['id' => $idVariante];
+                }
+            }
         }
+
+        if ($entroSecundaria && !$juegoExisteSecundariaPs5 && !$juegoExisteSecundariaPs4) {
+            $jumpseller->deleteProductoOptionValue($id, $idCuenta, $idSecundaria);
+        }
+
+        $data = [
+            'product' => [
+                'categories' => $categoriasParaApi,
+                'variants' => $variantesParaApi
+            ]
+        ];
+
+        // Actualiza el producto enviando solo los IDs
+        $jumpseller->updateProducto($id, $data);
+        $t_mensaje = "El producto '$nombreJuego' ha sido quitado de la categoría de ofertas.";
+        $t_tipo = 'success';
 
         return redirect()->back()->with('mensaje', $t_mensaje)->with('tipo', $t_tipo);
     }
