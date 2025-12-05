@@ -8,6 +8,7 @@ use App\Models\Movimientos;
 use App\Models\Notificaciones;
 use App\Models\ResumenMensual;
 use App\Models\Ventas;
+use App\Services\JumpsellerApiService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -70,7 +71,7 @@ class VentasController extends Controller
         return Inertia::render('Ventas/Create', ["cuenta_juego" => $cuentaJuego]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, JumpsellerApiService $jumpseller)
     {
         $cuentaJuego = [];
         $licencia = "";
@@ -221,11 +222,142 @@ class VentasController extends Controller
 
                     $agotadoJuego = $this->comprobarExistenciaJuego($request->tipo_cuenta, $request->consola, $request->juego);
                     if ($agotadoJuego == null) {
-                        Notificaciones::create([
-                            'tipo' => 'agotado_juego',
-                            'juego' => $request->juego,
-                            'mensaje' => "Se agotaron las cuentas $request->tipo_cuenta para $request->consola",
-                        ]);
+                        $productoJumpseller = $jumpseller->searchProductos($request->juego, ['id', 'name'], 1);
+                        $nameProducto = $productoJumpseller[0]['product']['name'];
+                        $idProducto = $productoJumpseller[0]['product']['id'];
+
+                        if ($nameProducto == $request->juego) {
+                            $idCuenta = env('JUMPSELLER_CUENTA_OPTION_ID');
+                            $idPrimaria = env('JUMPSELLER_PRIMARIA_OPTION_VALUE_ID');
+                            $idSecundaria = env('JUMPSELLER_SECUNDARIA_OPTION_VALUE_ID');
+                            $idConsola = env('JUMPSELLER_CONSOLA_OPTION_ID');
+                            $idPs4 = env('JUMPSELLER_PS4_OPTION_VALUE_ID');
+                            $idPs5 = env('JUMPSELLER_PS5_OPTION_VALUE_ID');
+                            $ofertasCategoriaId = env('JUMPSELLER_OFERTAS_CATEGORY_ID');
+                            $resultadoOpciones = $jumpseller->getProductoOptionValues($idProducto, $idCuenta);
+                            $existeOpcion = false;
+
+                            if ($request->tipo_cuenta == 'Primaria') {
+                                $producto = $jumpseller->getProductoId($idProducto);
+                                $categorias = $producto['product']['categories'];
+                                $variantes = $producto['product']['variants'];
+                                $tieneOferta = false;
+                                $variantesParaApi = [];
+
+                                foreach ($categorias as $categoria) {
+                                    if ($categoria['id'] == $ofertasCategoriaId) {
+                                        $tieneOferta = true;
+                                        break;
+                                    }
+                                }
+
+                                if ($tieneOferta == false) {
+                                    if ($request->consola == 'PS4') {
+                                        foreach ($variantes as $variante) {
+                                            $precioCompare = $variante['compare_at_price'] ?? null;
+                                            $idVariante = $variante['id'] ?? null;
+                                            $cuenta = null;
+                                            $consola = null;
+
+                                            foreach ($variante['options'] as $opcion) {
+                                                if ($opcion['product_option_id'] == $idCuenta) {
+                                                    $cuenta = $opcion['product_option_value_id'];
+                                                }
+                                                if ($opcion['product_option_id'] == $idConsola) {
+                                                    $consola = $opcion['product_option_value_id'];
+                                                }
+                                            }
+
+                                            // Primaria PS4
+                                            if ($cuenta == $idPrimaria && $consola == $idPs4) {
+                                                if ($precioCompare != null) {
+                                                    $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
+                                                } else {
+                                                    $variantesParaApi[] = ['id' => $idVariante];
+                                                }
+                                            } else {
+                                                $variantesParaApi[] = ['id' => $idVariante];
+                                            }
+                                        }
+                                    } else if ($request->consola == 'PS5') {
+                                        foreach ($variantes as $variante) {
+                                            $precioCompare = $variante['compare_at_price'] ?? null;
+                                            $idVariante = $variante['id'] ?? null;
+                                            $cuenta = null;
+                                            $consola = null;
+
+                                            foreach ($variante['options'] as $opcion) {
+                                                if ($opcion['product_option_id'] == $idCuenta) {
+                                                    $cuenta = $opcion['product_option_value_id'];
+                                                }
+                                                if ($opcion['product_option_id'] == $idConsola) {
+                                                    $consola = $opcion['product_option_value_id'];
+                                                }
+                                            }
+
+                                            // Primaria PS5
+                                            if ($cuenta == $idPrimaria && $consola == $idPs5) {
+                                                if ($precioCompare != null) {
+                                                    $variantesParaApi[] = ['id' => $idVariante, 'price' => $precioCompare, 'compare_at_price' => null];
+                                                } else {
+                                                    $variantesParaApi[] = ['id' => $idVariante];
+                                                }
+                                            } else {
+                                                $variantesParaApi[] = ['id' => $idVariante];
+                                            }
+                                        }
+                                    }
+
+                                    $data = [
+                                        'product' => [
+                                            'variants' => $variantesParaApi
+                                        ]
+                                    ];
+
+                                    $jumpseller->updateProducto($idProducto, $data);
+
+                                    Notificaciones::create([
+                                        'tipo' => 'precio_modificado',
+                                        'juego' => $request->juego,
+                                        'mensaje' => "Se quito las cuentas $request->tipo_cuenta para $request->consola para el juego $request->juego en Jumpseller ✅",
+                                    ]);
+                                } else {
+                                    Notificaciones::create([
+                                        'tipo' => 'precio_modificado',
+                                        'juego' => $request->juego,
+                                        'mensaje' => "Se agotaron las cuentas $request->tipo_cuenta para $request->consola para el juego $request->juego con oferta activa en Jumpseller ✅",
+                                    ]);
+                                }
+                            } else {
+                                foreach ($resultadoOpciones as $optionValue) {
+                                    if ($optionValue['value']['id'] == $idSecundaria) {
+                                        $existeOpcion = true;
+                                        break;
+                                    }
+                                }
+
+                                if ($existeOpcion) {
+                                    $jumpseller->deleteProductoOptionValue($idProducto, $idCuenta, $idSecundaria);
+                                    Notificaciones::create([
+                                        'tipo' => 'precio_modificado',
+                                        'juego' => $request->juego,
+                                        'mensaje' => "Se quito las cuentas $request->tipo_cuenta para $request->consola para el juego $request->juego en Jumpseller ✅",
+                                    ]);
+                                } else {
+                                    Notificaciones::create([
+                                        'tipo' => 'agotado_juego',
+                                        'juego' => $request->juego,
+                                        'mensaje' => "Se agotaron las cuentas $request->tipo_cuenta para $request->consola",
+                                    ]);
+                                }
+                            }
+                        } else {
+                            Notificaciones::create([
+                                'tipo' => 'agotado_juego',
+                                'juego' => $request->juego,
+                                'mensaje' => "Se agotaron las cuentas $request->tipo_cuenta para $request->consola",
+                            ]);
+                        }
                     }
 
                     if ($codigosLibres == 1) {

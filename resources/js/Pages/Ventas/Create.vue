@@ -91,8 +91,16 @@ const seleccionarJuego = async (nombreJuego) => {
 
 // Función para manejar el envío manualmente
 const submitForm = () => {
+    swalWithTailwind.fire({
+        title: 'Generando venta...',
+        didOpen: () => {
+            swalWithTailwind.showLoading();
+        }
+    });
+
     form.post(route("ventas.store"), {
         onSuccess: () => {
+            swalWithTailwind.close();
             if (props.cuenta_juego.resultado == 1) {
                 form.reset();
                 juegoVendido.value = true;
@@ -107,6 +115,7 @@ const submitForm = () => {
             }
         },
         onError: (errors) => {
+            swalWithTailwind.close();
             console.log("Errores en el formulario:", errors);
         },
     });

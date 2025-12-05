@@ -75,4 +75,25 @@ class JumpsellerApiService
         $response = $this->client->delete("products/{$productId}/options/{$optionId}/values/{$valueId}.json");
         return json_decode($response->getBody(), true);
     }
+
+    public function searchProductos($query, $fields = [], $limit = 50, $page = 1)
+    {
+        $params = [
+            'query' => $query,
+            'fields' => implode(',', $fields),
+            'limit' => $limit,
+            'page' => $page,
+        ];
+
+        $response = $this->client->get("products/search.json", [
+            'query' => $params
+        ]);
+        return json_decode($response->getBody(), true);
+    }
+
+    public function getProductoOptionValues($productId, $optionId)
+    {
+        $response = $this->client->get("products/{$productId}/options/{$optionId}/values.json");
+        return json_decode($response->getBody(), true);
+    }
 }
