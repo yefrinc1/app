@@ -125,7 +125,7 @@ const formatearFecha = (fecha) => {
                 <section>
                     <div class="flex justify-end mb-4">
                         <PrimaryButton @click="crearModal()">
-                            + Nuevo Correo
+                            + Nuevo Movimiento
                         </PrimaryButton>
                     </div>
 

@@ -41,8 +41,31 @@ class CorreoJuegoController extends Controller
     public function create()
     {
         $correosMadres = CorreoMadre::where('disponible', 1)->take(30)->latest()->get();
-        $correosGlobales = CorreoGlobales::where('disponible', 1)->take(30)->latest()->get();
-        return Inertia::render('CorreoJuego/Create', ['correosMadres' => $correosMadres, 'correosGlobales' => $correosGlobales]);
+
+        // Obtener los ids de correo principal que tienen correos globales disponibles
+        $principalesIds = CorreoGlobales::where('disponible', 1)
+            ->distinct()
+            ->pluck('id_correo_principal');
+
+        // Por cada id de principal, traer hasta 2 correos globales disponibles
+        $correosGlobales = collect();
+        foreach ($principalesIds as $principalId) {
+            $items = CorreoGlobales::where('disponible', 1)
+                ->where('id_correo_principal', $principalId)
+                ->take(2)
+                ->latest()
+                ->get();
+
+            $correosGlobales = $correosGlobales->concat($items);
+        }
+
+        // Opcional: reindexar la colección y limitar total si se desea
+        $correosGlobales = $correosGlobales->values();
+
+        return Inertia::render('CorreoJuego/Create', [
+            'correosMadres' => $correosMadres,
+            'correosGlobales' => $correosGlobales,
+        ]);
     }
 
     public function crearJuegoManual()

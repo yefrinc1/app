@@ -123,7 +123,7 @@ class CorreoPrincipalController extends Controller
         [$nombre, $dominio] = explode('@', $correo);
 
         // Generar todas las combinaciones posibles con puntos
-        $variantes = $this->generarCombinaciones($nombre);
+        $variantes = $this->generarCombinaciones($nombre, $dominio);
 
         // Añadir el dominio a cada variante
         $correosGenerados = array_map(fn($variante) => $variante . '@' . $dominio, $variantes);
@@ -131,17 +131,18 @@ class CorreoPrincipalController extends Controller
         return $correosGenerados;
     }
 
-    private function generarCombinaciones($nombre)
+    private function generarCombinaciones($nombre, $dominio)
     {
-        $longitud = strlen($nombre);
+        $longitud = ($dominio === 'gmail.com') ? 5 : 10;
         $resultados = [];
         $resultados[] = $nombre;
-    
-        for ($i = 1; $i < $longitud; $i++) { 
-            $nuevoNombre = substr($nombre, 0, $i) . '.' . substr($nombre, $i);
-            $resultados[] = $nuevoNombre;
+
+        for ($i = 1; $i < $longitud; $i++) {
+            // genera 3 letras aleatorias minúsculas
+            $random = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz'), 0, 3);
+            $resultados[] = $nombre . '+' . $random;
         }
-    
+        
         return $resultados;
     }
 }
