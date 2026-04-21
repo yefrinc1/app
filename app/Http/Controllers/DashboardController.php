@@ -122,6 +122,7 @@ class DashboardController extends Controller
         $graficaCumplimientoDiario = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%d") AS fecha')
             ->selectRaw("ROUND((SUM(precio) / $presupuestoDiario) * 100, 2) AS suma_dividida")
             ->groupBy(DB::raw('DATE_FORMAT(created_at, "%m/%d")'))
+            ->whereYear('created_at', $anioActual)
             ->whereRaw('DATE_FORMAT(created_at, "%m/%d") <= ?', [$hoy->format('m/d')])
             ->orderByRaw('fecha DESC')
             ->limit(8)
