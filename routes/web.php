@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');
     Route::delete('/productos-oferta-jumpseller/{id}/quitar-oferta', [ProductosJumpsellerController::class, 'quitarOferta'])->name('productos-oferta-jumpseller.quitar-oferta');
+    Route::post('/productos-oferta-jumpseller/quitar-todas', [ProductosJumpsellerController::class, 'quitarTodasOfertas'])->name('productos-oferta-jumpseller.quitar-todas');
     Route::get('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductos'])->name('productos-sincronizar');
     Route::patch('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductosUpdate'])->name('productos-sincronizar.update');
 });

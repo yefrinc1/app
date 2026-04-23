@@ -13,6 +13,10 @@ const props = defineProps({
 
 const form = useForm({});
 
+const formMasivo = useForm({
+    ids: []
+});
+
 function quitarOferta(id) {
     Swal.fire({
         title: 'Quitando oferta...',
@@ -46,6 +50,42 @@ function quitarOferta(id) {
         }
     });
 }
+
+function quitarTodasLasOfertas() {
+    // Obtenemos todos los IDs actuales de los productos cargados
+    const todosLosIds = props.productos.map(p => p.id);
+
+    if (todosLosIds.length === 0) return;
+
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: `Se quitará la oferta de ${todosLosIds.length} productos.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, quitar todas',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Quitando todas las ofertas...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            formMasivo.ids = todosLosIds;
+            formMasivo.post(route('productos-oferta-jumpseller.quitar-todas'), {
+                onSuccess: () => {
+                    Swal.close();
+                    Swal.fire('¡Listo!', 'Todas las ofertas han sido removidas.', 'success');
+                },
+                onError: () => {
+                    Swal.close();
+                    Swal.fire('Error', 'No se pudieron quitar todas las ofertas.', 'error');
+                }
+            });
+        }
+    });
+}
 </script>
 
 <template>
@@ -58,6 +98,15 @@ function quitarOferta(id) {
         <template #contenido-pagina>
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <section>
+                    <div class="mb-4 flex justify-end">
+                        <DangerButton 
+                            v-if="productos.length > 0"
+                            :disabled="formMasivo.processing"
+                            @click="quitarTodasLasOfertas"
+                        >
+                            QUITAR TODAS ({{ productos.length }})
+                        </DangerButton>
+                    </div>
                     <div class="overflow-x-auto shadow rounded-lg">
                         <table class="w-full border border-gray-200">
                             <thead>
