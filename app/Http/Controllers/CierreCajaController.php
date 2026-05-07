@@ -119,6 +119,43 @@ class CierreCajaController extends Controller
         return redirect()->route("cierre-caja.index", ['mensaje' => 'Se cerro la caja correctamente']);
     }
 
+    public function cierreCajaAutomatico()
+    {
+        $fecha = Carbon::yesterday()->toDateString();
+
+        if (CierreCaja::whereDate('fecha', $fecha)->exists()) {
+            return response()->json(['message' => 'Ya existe cierre para ' . $fecha], 200);
+        }
+
+        $ultimoCierre = CierreCaja::latest()->first();
+        $saldoInicial = $ultimoCierre->saldo_final ?? 0;
+
+        $ingresos = Ventas::whereDate('created_at', $fecha)->sum('precio');
+        $movimientoIngresoHoy = Movimientos::whereDate('created_at', $fecha)
+            ->where('tipo', 'Ingreso')
+            ->sum('valor');
+
+        $egresos = Movimientos::whereDate('created_at', $fecha)
+            ->where('tipo', 'Egreso')
+            ->sum('valor');
+
+        $retiroUtilidades = Movimientos::whereDate('created_at', $fecha)
+            ->where('tipo', 'Retiro Utilidades')
+            ->sum('valor');
+
+        $saldoFinal = $saldoInicial + ($ingresos + $movimientoIngresoHoy - $egresos - $retiroUtilidades);
+
+        CierreCaja::create([
+            'fecha' => $fecha,
+            'saldo_inicial' => $saldoInicial,
+            'ingresos' => $ingresos + $movimientoIngresoHoy,
+            'egresos' => $egresos,
+            'saldo_final' => $saldoFinal,
+        ]);
+
+        return response()->json(['message' => 'Cierre creado', 'fecha' => $fecha], 201);
+    }
+
     public function destroy(string $id)
     {
         $cierreCaja = CierreCaja::findOrFail($id);

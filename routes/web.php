@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('/notificaciones', NotificacionesController::class);
     Route::resource('/movimientos', MovimientosController::class);
     Route::resource('/cierre-caja', CierreCajaController::class);
+    Route::get('/cierre-caja-automatico', [CierreCajaController::class, 'cierreCajaAutomatico'])->name('cierre-caja-automatico');
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
