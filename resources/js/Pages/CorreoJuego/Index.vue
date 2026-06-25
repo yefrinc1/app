@@ -12,6 +12,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
+import JuegoCatalogoInput from '@/Components/JuegoCatalogoInput.vue';
 
 const confirmingCorreoEditar = ref(false);
 const correoInput = ref(null);
@@ -74,16 +75,24 @@ const buscarCorreo = () => {
 };
 
 const editarCorreo = () => {
-    form.put(route("correo-juegos.update", form.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-            swalWithTailwind.fire({
-                title: props.mensaje_correo_creado,
-                icon: props.icon_mensaje,
-            });
-            closeModal();
-        },
-    });
+    const params = new URLSearchParams(window.location.search);
+
+    form
+        .transform((data) => ({
+            ...data,
+            page: params.get('page') || 1,
+            search: params.get('search') || '',
+        }))
+        .put(route("correo-juegos.update", form.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                swalWithTailwind.fire({
+                    title: props.mensaje_correo_creado,
+                    icon: props.icon_mensaje,
+                });
+                closeModal();
+            },
+        });
 };
 
 const closeModal = () => {
@@ -148,7 +157,7 @@ const formatearFecha = (fecha) => {
                         </div>
                         <Link :href="route('correo-juegos.create')">
                             <PrimaryButton>
-                                + Nuevo Correo
+                                + Nuevo Correo Juego
                             </PrimaryButton>
                         </Link>
                     </div>
@@ -157,42 +166,108 @@ const formatearFecha = (fecha) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
-                                    <th class="px-4 py-2 text-left">Correo</th>
-                                    <th class="px-4 py-2 text-left">Contraseña</th>
-                                    <th class="px-4 py-2 text-left">Madre</th>
+                                    <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10">
+                                        Acciones
+                                    </th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
                                     <th class="px-4 py-2 text-left">Juego</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS4</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS5</th>
-                                    <th class="px-4 py-2 text-left">Secundaria</th>
-                                    <th class="px-4 py-2 text-left">Precio USD</th>
-                                    <th class="px-4 py-2 text-left">Precio COP</th>
+                                    <th class="px-4 py-2 text-left">Licencias</th>
+                                    <th class="px-4 py-2 text-left">Precios</th>
                                     <th class="px-4 py-2 text-left">Nacimiento</th>
                                     <th class="px-4 py-2 text-left">Disponible</th>
-                                    <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="correo in props.correos.data" :key="correo.id"
                                     class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ correo.correo }}</td>
-                                    <td class="px-4 py-2">{{ correo.contrasena }}</td>
-                                    <td class="px-4 py-2">{{ correo.id_correo_madre }}</td>
-                                    <td class="px-4 py-2">{{ correo.juego }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps4 }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps5 }}</td>
-                                    <td class="px-4 py-2">{{ correo.secundaria }}</td>
-                                    <td class="px-4 py-2">{{ correo.precio_usd }}</td>
-                                    <td class="px-4 py-2">{{ correo.precio_cop }}</td>
+                                    <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <SecondaryButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.juego, correo.precio_usd, correo.precio_cop, correo.primaria_ps5, correo.primaria_ps4, correo.secundaria)"
+                                            >
+                                                <i class="fa-solid fa-user-pen"></i>
+                                            </SecondaryButton>
+
+                                            <DangerButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="eliminarCorreo(correo.id)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </DangerButton>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-envelope text-blue-500"></i>
+                                                <span class="truncate">{{ correo.correo }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-md text-gray-600 mt-1">
+                                                <i class="fa-solid fa-key text-amber-500"></i>
+                                                <span>{{ correo.contrasena }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-sm text-purple-700 mt-1">
+                                                <i class="fa-solid fa-link text-purple-500"></i>
+                                                <span>Madre #{{ correo.id_correo_madre }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-gamepad text-purple-500"></i>
+
+                                                <span class="font-semibold text-gray-900">
+                                                    {{ correo.juego }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="inline-flex items-center bg-gradient-to-r from-blue-100 to-blue-200 text-blue-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                PS4: {{ correo.primaria_ps4 }}
+                                            </span>
+
+                                            <span class="inline-flex items-center bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                PS5: {{ correo.primaria_ps5 }}
+                                            </span>
+
+                                            <span class="inline-flex items-center bg-gradient-to-r from-green-100 to-green-200 text-green-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                SEC: {{ correo.secundaria }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="inline-flex flex-col gap-1">
+                                            <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                USD {{ correo.precio_usd }}
+                                            </div>
+
+                                            <div class="bg-gradient-to-r from-green-100 to-green-200 text-green-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                COP ${{ Number(correo.precio_cop).toLocaleString('es-CO') }}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-2">{{ formatearFecha(correo.fecha_nacimiento) }}</td>
-                                    <td class="px-4 py-2">{{ correo.disponible }}</td>
-                                    <td class="px-4 py-2 flex justify-center space-x-2">
-                                        <SecondaryButton
-                                            @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.juego, correo.precio_usd, correo.precio_cop, correo.primaria_ps5, correo.primaria_ps4, correo.secundaria)">
-                                            <i class="fa-solid fa-user-pen"></i>
-                                        </SecondaryButton>
-                                        <DangerButton @click="eliminarCorreo(correo.id)">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </DangerButton>
+                                    <td class="px-4 py-2">
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold',
+                                                correo.disponible == 1
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                            ]"
+                                        >
+                                            <i
+                                                :class="correo.disponible == 1
+                                                    ? 'fa-solid fa-circle-check'
+                                                    : 'fa-solid fa-circle-xmark'"
+                                            ></i>
+
+                                            {{ correo.disponible == 1 ? 'Disponible' : 'No disponible' }}
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr v-if="props.correos.data.length === 0">
@@ -206,12 +281,17 @@ const formatearFecha = (fecha) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
+                        <div class="flex flex-wrap justify-center gap-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-                                <Link v-if="link.url" :href="link.url" v-html="link.label"
-                                    class="px-3 py-1 border rounded-md"
-                                    :class="link.active ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                        : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'" />
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
+                                    :class="link.active
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
+                                />
                             </template>
                         </div>
                     </div>
@@ -244,12 +324,14 @@ const formatearFecha = (fecha) => {
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="juego" value="Juego" />
-
-                        <TextInput id="juego" ref="juego" v-model="form.juego" type="text"
-                            class="mt-1 block w-full" autocomplete="juego"/>
-
-                        <InputError :message="form.errors.juego" class="mt-2" />
+                        <InputLabel for="juego_editar" value="Juego" />
+                        <JuegoCatalogoInput
+                            v-if="confirmingCorreoEditar"
+                            :key="form.id"
+                            v-model="form.juego"
+                            input-id="juego_editar"
+                            :error="form.errors.juego"
+                        />
                     </div>
 
                     <div class="mt-6">
@@ -267,13 +349,71 @@ const formatearFecha = (fecha) => {
                     <div class="mt-6">
                         <InputLabel for="codigo" value="Codigos" />
 
-                        <textarea
-                            id="codigo"
-                            ref="codigo"
-                            class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                            rows="4"
-                            v-model="form.codigo"
-                        ></textarea>
+                        <div class="relative">
+                            <textarea
+                                id="codigo"
+                                ref="codigo"
+                                rows="4"
+                                v-model="form.codigo"
+                                placeholder="Ingresa el código..."
+                                class="
+                                    mt-1
+                                    block
+                                    w-full
+
+                                    rounded-xl
+
+                                    border
+                                    border-red-500/30
+
+                                    bg-gradient-to-r
+                                    from-white
+                                    via-red-50
+                                    to-amber-50
+
+                                    px-4
+                                    py-3
+                                    pr-10
+
+                                    text-gray-800
+                                    font-medium
+
+                                    placeholder:text-gray-400
+
+                                    shadow-md
+
+                                    transition-all
+                                    duration-300
+
+                                    hover:border-red-500/50
+
+                                    focus:outline-none
+                                    focus:border-amber-500
+
+                                    focus:ring-4
+                                    focus:ring-red-500/20
+
+                                    focus:shadow-lg
+                                    focus:shadow-red-500/20
+
+                                    resize-y
+                                "
+                            ></textarea>
+
+                            <div
+                                class="
+                                    pointer-events-none
+                                    absolute
+                                    top-4
+                                    right-3
+
+                                    text-amber-500
+                                "
+                            >
+                                <i class="fa-solid fa-key"></i>
+                            </div>
+                        </div>
+
                         <InputError :message="form.errors.codigo" class="mt-2" />
                     </div>
 

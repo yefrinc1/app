@@ -58,18 +58,75 @@ const form = useForm({
                         <div>
                             <InputLabel for="medio_pago" value="Medio de pago" />
 
-                            <select
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                v-model="form.medio_pago" 
-                                id="medio_pago"
-                                required
-                            >
-                                <option value="" >Selecciona un medio de pago</option>
-                                <option value="Bancolombia">Bancolombia</option>
-                                <option value="Nequi">Nequi</option>
-                                <option value="Mercado Pago">Mercado Pago</option>
-                                <option value="Efectivo">Efectivo</option>
-                            </select>
+                            <div class="relative">
+                                <select
+                                    id="medio_pago"
+                                    v-model="form.medio_pago"
+                                    required
+                                    class="
+                                        appearance-none
+
+                                        mt-1
+                                        block
+                                        w-full
+
+                                        rounded-xl
+
+                                        border
+                                        border-red-500/30
+
+                                        bg-gradient-to-r
+                                        from-white
+                                        via-red-50
+                                        to-amber-50
+
+                                        px-4
+                                        py-2.5
+                                        pr-10
+
+                                        text-gray-800
+                                        font-semibold
+
+                                        shadow-md
+
+                                        transition-all
+                                        duration-300
+
+                                        hover:border-red-500/50
+
+                                        focus:outline-none
+                                        focus:border-amber-500
+
+                                        focus:ring-4
+                                        focus:ring-red-500/20
+
+                                        focus:shadow-lg
+                                        focus:shadow-red-500/20
+                                    "
+                                >
+                                    <option value="">💳 Selecciona un medio de pago</option>
+                                    <option value="Bancolombia">🏦 Bancolombia</option>
+                                    <option value="Nequi">📱 Nequi</option>
+                                    <option value="Mercado Pago">💳 Mercado Pago</option>
+                                    <option value="Efectivo">💵 Efectivo</option>
+                                </select>
+
+                                <div
+                                    class="
+                                        pointer-events-none
+                                        absolute
+                                        inset-y-0
+                                        right-3
+
+                                        flex
+                                        items-center
+
+                                        text-amber-500
+                                    "
+                                >
+                                    <i class="fa-solid fa-credit-card"></i>
+                                </div>
+                            </div>
                         
                             <InputError class="mt-2" :message="form.errors.medio_pago" />
                         </div>
@@ -92,16 +149,73 @@ const form = useForm({
                         <div>
                             <InputLabel for="consola" value="Consola" />
 
-                            <select
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                v-model="form.consola" 
-                                id="consola"
-                                required
-                            >
-                                <option value="" >Selecciona una consola</option>
-                                <option value="PS4">PS4</option>
-                                <option value="PS5">PS5</option>
-                            </select>
+                            <div class="relative">
+                                <select
+                                    id="consola"
+                                    v-model="form.consola"
+                                    required
+                                    class="
+                                        appearance-none
+
+                                        mt-1
+                                        block
+                                        w-full
+
+                                        rounded-xl
+
+                                        border
+                                        border-red-500/30
+
+                                        bg-gradient-to-r
+                                        from-white
+                                        via-red-50
+                                        to-amber-50
+
+                                        px-4
+                                        py-2.5
+                                        pr-10
+
+                                        text-gray-800
+                                        font-semibold
+
+                                        shadow-md
+
+                                        transition-all
+                                        duration-300
+
+                                        hover:border-red-500/50
+
+                                        focus:outline-none
+                                        focus:border-amber-500
+
+                                        focus:ring-4
+                                        focus:ring-red-500/20
+
+                                        focus:shadow-lg
+                                        focus:shadow-red-500/20
+                                    "
+                                >
+                                    <option value="">🎮 Selecciona una consola</option>
+                                    <option value="PS4">🎮 PlayStation 4 (PS4)</option>
+                                    <option value="PS5">🚀 PlayStation 5 (PS5)</option>
+                                </select>
+
+                                <div
+                                    class="
+                                        pointer-events-none
+                                        absolute
+                                        inset-y-0
+                                        right-3
+
+                                        flex
+                                        items-center
+
+                                        text-amber-500
+                                    "
+                                >
+                                    <i class="fa-brands fa-playstation"></i>
+                                </div>
+                            </div>
                         
                             <InputError class="mt-2" :message="form.errors.consola" />
                         </div>

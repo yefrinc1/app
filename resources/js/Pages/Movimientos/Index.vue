@@ -19,10 +19,10 @@ const props = defineProps({
     movimientos: Object,
 });
 
-const form = useForm({ 
+const form = useForm({
     id: 0,
     tipo: '',
-    descripcion: '', 
+    descripcion: '',
     valor: '',
     observaciones: '',
 });
@@ -32,6 +32,7 @@ const swalWithTailwind = Swal.mixin({
 });
 
 const crearModal = () => {
+    form.reset();
     confirmingCorreoCrear.value = true;
 };
 
@@ -76,8 +77,7 @@ const closeModal = () => {
     form.reset();
 };
 
-// Confirmación antes de eliminar un correo
-const eliminarCorreo = (id) => {
+const eliminarMovimiento = (id) => {
     swalWithTailwind.fire({
         title: '¿Seguro que deseas eliminar este movimiento?',
         icon: 'question',
@@ -87,15 +87,14 @@ const eliminarCorreo = (id) => {
     }).then((result) => {
         if (result.isConfirmed) {
             form.delete(route("movimientos.destroy", id), {
+                preserveScroll: true,
                 onSuccess: () => {
-                    // Acción después de la eliminación exitosa
                     swalWithTailwind.fire({
                         title: 'Movimiento eliminado correctamente',
                         icon: 'success',
                     });
                 },
                 onError: () => {
-                    // Acción si hay un error
                     swalWithTailwind.fire({
                         title: 'Hubo un error al eliminar el movimiento',
                         icon: 'error',
@@ -107,24 +106,79 @@ const eliminarCorreo = (id) => {
 };
 
 const formatearFecha = (fecha) => {
-  if (!fecha) return "";
-  return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(fecha));
+    if (!fecha) return "";
+
+    return new Intl.DateTimeFormat("es-CO", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    }).format(new Date(fecha));
+};
+
+const formatoCop = (valor) => {
+    return Number(valor || 0).toLocaleString('es-CO');
+};
+
+const claseTipo = (tipo) => {
+    if (tipo === 'Ingreso') {
+        return 'bg-green-100 text-green-800';
+    }
+
+    if (tipo === 'Egreso') {
+        return 'bg-red-100 text-red-800';
+    }
+
+    if (tipo === 'Retiro Utilidades') {
+        return 'bg-yellow-100 text-yellow-800';
+    }
+
+    return 'bg-gray-100 text-gray-800';
+};
+
+const iconoTipo = (tipo) => {
+    if (tipo === 'Ingreso') {
+        return 'fa-solid fa-arrow-trend-up';
+    }
+
+    if (tipo === 'Egreso') {
+        return 'fa-solid fa-arrow-trend-down';
+    }
+
+    if (tipo === 'Retiro Utilidades') {
+        return 'fa-solid fa-money-bill-transfer';
+    }
+
+    return 'fa-solid fa-circle-info';
 };
 </script>
 
 <template>
-
     <Head title="Movimientos" />
+
     <LayoutPageHeader>
         <template #titulo-pagina>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">🔄 Movimientos</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                🔄 Movimientos
+            </h2>
         </template>
 
         <template #contenido-pagina>
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <section>
-                    <div class="flex justify-end mb-4">
-                        <PrimaryButton @click="crearModal()">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">
+                                Registro de movimientos
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Controla ingresos, egresos y retiros de utilidades.
+                            </p>
+                        </div>
+
+                        <PrimaryButton
+                            @click="crearModal()"
+                            class="w-full sm:w-auto justify-center"
+                        >
                             + Nuevo Movimiento
                         </PrimaryButton>
                     </div>
@@ -133,34 +187,112 @@ const formatearFecha = (fecha) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
-                                    <th class="px-4 py-2 text-left">Tipo</th>
-                                    <th class="px-4 py-2 text-left">Descripcion</th>
+                                    <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
+                                        Acciones
+                                    </th>
+                                    <th class="px-4 py-2 text-left">Movimiento</th>
                                     <th class="px-4 py-2 text-left">Valor</th>
                                     <th class="px-4 py-2 text-left">Observaciones</th>
                                     <th class="px-4 py-2 text-left">Fecha</th>
-                                    <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
+
                             <tbody>
-                                <tr v-for="movimiento in props.movimientos.data" :key="movimiento.id"
-                                    class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ movimiento.tipo }}</td>
-                                    <td class="px-4 py-2">{{ movimiento.descripcion }}</td>
-                                    <td class="px-4 py-2">{{ movimiento.valor }}</td>
-                                    <td class="px-4 py-2">{{ movimiento.observaciones }}</td>
-                                    <td class="px-4 py-2">{{ formatearFecha(movimiento.created_at) }}</td>
-                                    <td class="px-4 py-2 flex justify-center space-x-2">
-                                        <SecondaryButton
-                                            @click="editarModal(movimiento.id, movimiento.tipo, movimiento.descripcion, movimiento.valor, movimiento.observaciones)">
-                                            <i class="fa-solid fa-user-pen"></i>
-                                        </SecondaryButton>
-                                        <DangerButton @click="eliminarCorreo(movimiento.id)">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </DangerButton>
+                                <tr
+                                    v-for="movimiento in props.movimientos.data"
+                                    :key="movimiento.id"
+                                    class="border-b hover:bg-gray-100"
+                                >
+                                    <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <SecondaryButton
+                                                class="w-8 h-8 flex items-center justify-center"
+                                                @click="editarModal(
+                                                    movimiento.id,
+                                                    movimiento.tipo,
+                                                    movimiento.descripcion,
+                                                    movimiento.valor,
+                                                    movimiento.observaciones
+                                                )"
+                                            >
+                                                <i class="fa-solid fa-user-pen"></i>
+                                            </SecondaryButton>
+
+                                            <DangerButton
+                                                class="w-8 h-8 flex items-center justify-center"
+                                                @click="eliminarMovimiento(movimiento.id)"
+                                            >
+                                                <i class="fa-solid fa-trash"></i>
+                                            </DangerButton>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[230px]">
+                                            <div class="flex items-center gap-2">
+                                                <span
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold',
+                                                        claseTipo(movimiento.tipo)
+                                                    ]"
+                                                >
+                                                    <i :class="iconoTipo(movimiento.tipo)"></i>
+                                                    {{ movimiento.tipo }}
+                                                </span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-sm text-gray-700 mt-2">
+                                                <i class="fa-solid fa-align-left text-blue-500"></i>
+                                                <span class="font-medium">
+                                                    {{ movimiento.descripcion || 'Sin descripción' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold shadow-sm',
+                                                movimiento.tipo === 'Ingreso'
+                                                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-900'
+                                                    : movimiento.tipo === 'Egreso'
+                                                        ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-900'
+                                                        : 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-900'
+                                            ]"
+                                        >
+                                            COP ${{ formatoCop(movimiento.valor) }}
+                                        </span>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="max-w-[260px]">
+                                            <span
+                                                v-if="movimiento.observaciones"
+                                                class="text-smtext-gray-700"
+                                            >
+                                                {{ movimiento.observaciones }}
+                                            </span>
+
+                                            <span
+                                                v-else
+                                                class="text-smtext-gray-400"
+                                            >
+                                                Sin observaciones
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-1 rounded-lg text-xs font-semibold">
+                                            <i class="fa-regular fa-calendar"></i>
+                                            {{ formatearFecha(movimiento.created_at) }}
+                                        </span>
                                     </td>
                                 </tr>
+
                                 <tr v-if="props.movimientos.data.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="8">
+                                    <td class="px-4 py-2 text-center" colspan="5">
                                         No hay movimientos registrados.
                                     </td>
                                 </tr>
@@ -170,19 +302,27 @@ const formatearFecha = (fecha) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
-                            <template v-for="(link, index) in props.movimientos.links" :key="index">
-                                <Link v-if="link.url" :href="link.url" v-html="link.label"
-                                    class="px-3 py-1 border rounded-md"
-                                    :class="link.active ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                        : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'" />
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <template
+                                v-for="(link, index) in props.movimientos.links"
+                                :key="index"
+                            >
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
+                                    :class="link.active
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
+                                />
                             </template>
                         </div>
                     </div>
-
                 </section>
             </div>
 
+            <!-- Modal Crear -->
             <Modal :show="confirmingCorreoCrear" @close="closeModal">
                 <div class="p-6">
                     <h2 class="text-lg font-medium text-gray-900">
@@ -190,12 +330,12 @@ const formatearFecha = (fecha) => {
                     </h2>
 
                     <div class="mt-6">
-                        <InputLabel for="tipo" value="Tipo" />
+                        <InputLabel for="tipo_crear" value="Tipo" />
 
                         <select
                             class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                            v-model="form.tipo" 
-                            id="tipo"
+                            v-model="form.tipo"
+                            id="tipo_crear"
                             required
                         >
                             <option value="">Seleccione un tipo</option>
@@ -203,62 +343,83 @@ const formatearFecha = (fecha) => {
                             <option value="Egreso">Egreso</option>
                             <option value="Retiro Utilidades">Retiro Utilidades</option>
                         </select>
-                    
+
                         <InputError class="mt-2" :message="form.errors.tipo" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="descripcion" value="Descripcion" />
+                        <InputLabel for="descripcion_crear" value="Descripción" />
 
-                        <TextInput id="descripcion" type="text"
-                            class="mt-1 block w-full" autocomplete="descripcion" v-model="form.descripcion" />
+                        <TextInput
+                            id="descripcion_crear"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="descripcion"
+                            v-model="form.descripcion"
+                        />
 
                         <InputError :message="form.errors.descripcion" class="mt-2" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="valor" value="Valor" />
+                        <InputLabel for="valor_crear" value="Valor" />
 
-                        <TextInput id="valor" type="number"
-                            class="mt-1 block w-full" autocomplete="valor" v-model="form.valor"/>
+                        <TextInput
+                            id="valor_crear"
+                            type="number"
+                            class="mt-1 block w-full"
+                            autocomplete="valor"
+                            v-model="form.valor"
+                        />
 
                         <InputError :message="form.errors.valor" class="mt-2" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="observaciones" value="Observaciones" />
+                        <InputLabel for="observaciones_crear" value="Observaciones" />
 
-                        <TextInput id="observaciones" type="text"
-                            class="mt-1 block w-full" autocomplete="observaciones" v-model="form.observaciones"/>
+                        <TextInput
+                            id="observaciones_crear"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="observaciones"
+                            v-model="form.observaciones"
+                        />
 
                         <InputError :message="form.errors.observaciones" class="mt-2" />
                     </div>
 
                     <div class="mt-6 flex justify-end">
-                        <SecondaryButton @click="closeModal"> {{ $t("Cancel") }}
+                        <SecondaryButton @click="closeModal">
+                            {{ $t("Cancel") }}
                         </SecondaryButton>
 
-                        <PrimaryButton class="ms-3" :class="{ 'opacity-25': form.processing }"
-                            :disabled="form.processing" @click="crearMovimiento">
+                        <PrimaryButton
+                            class="ms-3"
+                            :class="{ 'opacity-25': form.processing }"
+                            :disabled="form.processing"
+                            @click="crearMovimiento"
+                        >
                             Crear
                         </PrimaryButton>
                     </div>
                 </div>
             </Modal>
 
+            <!-- Modal Editar -->
             <Modal :show="confirmingCorreoEditar" @close="closeModal">
                 <div class="p-6">
                     <h2 class="text-lg font-medium text-gray-900">
-                        Editar movimiento
+                        Editar Movimiento
                     </h2>
 
                     <div class="mt-6">
-                        <InputLabel for="tipo" value="Tipo" />
+                        <InputLabel for="tipo_editar" value="Tipo" />
 
                         <select
                             class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                            v-model="form.tipo" 
-                            id="tipo"
+                            v-model="form.tipo"
+                            id="tipo_editar"
                             required
                         >
                             <option value="">Seleccione un tipo</option>
@@ -266,43 +427,63 @@ const formatearFecha = (fecha) => {
                             <option value="Egreso">Egreso</option>
                             <option value="Retiro Utilidades">Retiro Utilidades</option>
                         </select>
-                    
+
                         <InputError class="mt-2" :message="form.errors.tipo" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="descripcion" value="Descripcion" />
+                        <InputLabel for="descripcion_editar" value="Descripción" />
 
-                        <TextInput id="descripcion" type="text"
-                            class="mt-1 block w-full" autocomplete="descripcion" v-model="form.descripcion" />
+                        <TextInput
+                            id="descripcion_editar"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="descripcion"
+                            v-model="form.descripcion"
+                        />
 
                         <InputError :message="form.errors.descripcion" class="mt-2" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="valor" value="Valor" />
+                        <InputLabel for="valor_editar" value="Valor" />
 
-                        <TextInput id="valor" type="number"
-                            class="mt-1 block w-full" autocomplete="valor" v-model="form.valor"/>
+                        <TextInput
+                            id="valor_editar"
+                            type="number"
+                            class="mt-1 block w-full"
+                            autocomplete="valor"
+                            v-model="form.valor"
+                        />
 
                         <InputError :message="form.errors.valor" class="mt-2" />
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="observaciones" value="Observaciones" />
+                        <InputLabel for="observaciones_editar" value="Observaciones" />
 
-                        <TextInput id="observaciones" type="text"
-                            class="mt-1 block w-full" autocomplete="observaciones" v-model="form.observaciones"/>
+                        <TextInput
+                            id="observaciones_editar"
+                            type="text"
+                            class="mt-1 block w-full"
+                            autocomplete="observaciones"
+                            v-model="form.observaciones"
+                        />
 
                         <InputError :message="form.errors.observaciones" class="mt-2" />
                     </div>
 
                     <div class="mt-6 flex justify-end">
-                        <SecondaryButton @click="closeModal"> {{ $t("Cancel") }}
+                        <SecondaryButton @click="closeModal">
+                            {{ $t("Cancel") }}
                         </SecondaryButton>
 
-                        <PrimaryButton class="ms-3" :class="{ 'opacity-25': form.processing }"
-                            :disabled="form.processing" @click="editarMovimiento">
+                        <PrimaryButton
+                            class="ms-3"
+                            :class="{ 'opacity-25': form.processing }"
+                            :disabled="form.processing"
+                            @click="editarMovimiento"
+                        >
                             Editar
                         </PrimaryButton>
                     </div>

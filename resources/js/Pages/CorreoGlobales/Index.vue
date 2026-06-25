@@ -96,7 +96,7 @@ const eliminarCorreo = (id) => {
 
 <template>
 
-    <Head title="Correos Principales" />
+    <Head title="Correos Globales" />
     <LayoutPageHeader>
         <template #titulo-pagina>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">🌐 Correos Globales</h2>
@@ -122,24 +122,60 @@ const eliminarCorreo = (id) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
-                                    <th class="px-4 py-2 text-left">Correo</th>
+                                    <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10">
+                                        Acciones
+                                    </th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
                                     <th class="px-4 py-2 text-left">Disponible</th>
-                                    <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="correo in props.correos.data" :key="correo.id"
                                     class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ correo.correo }}</td>
-                                    <td class="px-4 py-2">{{ correo.disponible }}</td>
-                                    <td class="px-4 py-2 flex justify-center space-x-2">
-                                        <DangerButton @click="eliminarCorreo(correo.id)">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </DangerButton>
+                                    <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <DangerButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="eliminarCorreo(correo.id)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </DangerButton>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-envelope text-blue-500"></i>
+                                                <span class="truncate">{{ correo.correo }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-sm text-purple-700 mt-1">
+                                                <i class="fa-solid fa-globe text-purple-500"></i>
+                                                <span>Global #{{ correo.id }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold',
+                                                correo.disponible == 1
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                            ]"
+                                        >
+                                            <i
+                                                :class="correo.disponible == 1
+                                                    ? 'fa-solid fa-circle-check'
+                                                    : 'fa-solid fa-circle-xmark'"
+                                            ></i>
+
+                                            {{ correo.disponible == 1 ? 'Disponible' : 'No disponible' }}
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr v-if="props.correos.data.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="4">
+                                    <td class="px-4 py-2 text-center" colspan="3">
                                         No hay correos registrados.
                                     </td>
                                 </tr>
@@ -149,12 +185,17 @@ const eliminarCorreo = (id) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
+                        <div class="flex flex-wrap justify-center gap-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-                                <Link v-if="link.url" :href="link.url" v-html="link.label"
-                                    class="px-3 py-1 border rounded-md"
-                                    :class="link.active ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                        : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'" />
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
+                                    :class="link.active
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
+                                />
                             </template>
                         </div>
                     </div>
@@ -164,7 +205,7 @@ const eliminarCorreo = (id) => {
 
             <Modal :show="confirmingCorreoCrear" @close="closeModal">
                 <div class="p-6">
-                    <h2 class="text-lg font-medium text-gray-900">Crear nuevo correo principal</h2>
+                    <h2 class="text-lg font-medium text-gray-900">Crear nuevo correo global</h2>
 
                     <div class="mt-6">
                         <InputLabel for="correo" value="Correo" />

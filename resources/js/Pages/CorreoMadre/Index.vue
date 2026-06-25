@@ -122,13 +122,6 @@ const formatearSaldo = (valor) => {
     return Number(valor).toFixed(2);
 };
 
-const irAPagina = (url) => {
-    form.get(url, {
-        preserveScroll: false,
-        preserveState: true,
-    });
-};
-
 const sumarSaldo = (tipo) => {
     if (tipo === 'usd') {
         // Convierte ambos valores a número y suma
@@ -170,7 +163,7 @@ const sumarSaldo = (tipo) => {
                         </div>
                         <Link :href="route('correo-madre.create')">
                             <PrimaryButton>
-                                + Nuevo Correo
+                                + Nuevo Correo Madre
                             </PrimaryButton>
                         </Link>
                     </div>
@@ -179,44 +172,93 @@ const sumarSaldo = (tipo) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
-                                    <th class="px-4 py-2 text-left">Id</th>
-                                    <th class="px-4 py-2 text-left">Correo</th>
-                                    <th class="px-4 py-2 text-left">Contraseña</th>
+                                    <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10">
+                                        Acciones
+                                    </th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
                                     <th class="px-4 py-2 text-left">Hijos</th>
-                                    <th class="px-4 py-2 text-left">Saldo USD</th>
-                                    <th class="px-4 py-2 text-left">Saldo COP</th>
+                                    <th class="px-4 py-2 text-left">Saldos</th>
                                     <th class="px-4 py-2 text-left">Nacimiento</th>
                                     <th class="px-4 py-2 text-left">Disponible</th>
-                                    <th class="px-4 py-2 text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="correo in props.correos.data" :key="correo.id"
                                     class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ correo.id }}</td>
-                                    <td class="px-4 py-2"> {{ correo.correo }} </td>
-                                    <td class="px-4 py-2">{{ correo.contrasena }}</td>
+                                    <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <SecondaryButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.saldo_usd, correo.saldo_cop)">
+                                                <i class="fa-solid fa-user-pen"></i>
+                                            </SecondaryButton>
+
+                                            <DangerButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="eliminarCorreo(correo.id)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </DangerButton>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-envelope text-blue-500"></i>
+                                                <span class="truncate">{{ correo.correo }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-md text-gray-600 mt-1">
+                                                <i class="fa-solid fa-key text-amber-500"></i>
+                                                <span>{{ correo.contrasena }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-sm text-purple-700 mt-1">
+                                                <i class="fa-solid fa-id-card text-purple-500"></i>
+                                                <span> #{{ correo.id }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
                                     <td class="px-4 py-2">
                                         <Link :href="route('correo-madre.show', correo.id)">
-                                            <span class="text-red-500">{{ correo.correos_juegos_count }}</span>
+                                            <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-100 to-red-200 text-red-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                <i class="fa-solid fa-gamepad"></i>
+                                                {{ correo.correos_juegos_count }}
+                                            </span>
                                         </Link>
                                     </td>
-                                    <td class="px-4 py-2">{{ correo.saldo_usd }}</td>
-                                    <td class="px-4 py-2">{{ correo.saldo_cop }}</td>
+                                    <td class="px-4 py-2">
+                                        <div class="inline-flex flex-col gap-1">
+                                            <div class="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                USD {{ formatearSaldo(correo.saldo_usd) }}
+                                            </div>
+
+                                            <div class="bg-gradient-to-r from-green-100 to-green-200 text-green-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                                COP ${{ Number(correo.saldo_cop).toLocaleString('es-CO') }}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-2">{{ formatearFecha(correo.fecha_nacimiento) }}</td>
-                                    <td class="px-4 py-2">{{ correo.disponible }}</td>
-                                    <td class="px-4 py-2 flex justify-center space-x-2">
-                                        <SecondaryButton
-                                            @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.saldo_usd, correo.saldo_cop)">
-                                            <i class="fa-solid fa-user-pen"></i>
-                                        </SecondaryButton>
-                                        <DangerButton @click="eliminarCorreo(correo.id)">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </DangerButton>
+                                    <td class="px-4 py-2">
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold',
+                                                correo.disponible == 1
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                            ]"
+                                        >
+                                            <i
+                                                :class="correo.disponible == 1
+                                                    ? 'fa-solid fa-circle-check'
+                                                    : 'fa-solid fa-circle-xmark'"
+                                            ></i>
+
+                                            {{ correo.disponible == 1 ? 'Disponible' : 'No disponible' }}
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr v-if="props.correos.data.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="9">
+                                    <td class="px-4 py-2 text-center" colspan="6">
                                         No hay correos registrados.
                                     </td>
                                 </tr>
@@ -226,15 +268,16 @@ const sumarSaldo = (tipo) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
+                        <div class="flex flex-wrap justify-center gap-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-                                <button v-if="link.url"
-                                    @click.prevent="irAPagina(link.url + '&search=' + encodeURIComponent(searchQuery))"
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
                                     v-html="link.label"
-                                    class="px-3 py-1 border rounded-md"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
                                     :class="link.active
-                                    ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                    : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'"
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
                                 />
                             </template>
                         </div>

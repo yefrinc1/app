@@ -1,6 +1,6 @@
 <script setup>
 import { defineProps } from "vue";
-import { Head, useForm } from "@inertiajs/vue3";
+import { Link, Head, useForm } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import { ref, watch } from "vue";
 import TextInput from '@/Components/TextInput.vue';
@@ -24,13 +24,6 @@ const emit = defineEmits(["update:modelValue"]);
 const buscarJuego = () => {
     form.get(route('consultar-inventario', { search: searchQuery.value }), {
         preserveScroll: true,
-    });
-};
-
-const irAPagina = (url) => {
-    form.get(url, {
-        preserveScroll: false,
-        preserveState: true,
     });
 };
 
@@ -128,27 +121,61 @@ const seleccionarJuego = async (nombreJuego) => {
                             <thead>
                                 <tr class="bg-gray-100 border-b">
                                     <th class="px-4 py-2 text-left">#</th>
-                                    <th class="px-4 py-2 text-left">Correo</th>
-                                    <th class="px-4 py-2 text-left">Contraseña</th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
                                     <th class="px-4 py-2 text-left">Juego</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS4</th>
-                                    <th class="px-4 py-2 text-left">Primaria PS5</th>
-                                    <th class="px-4 py-2 text-left">Secundaria</th>
+                                    <th class="px-4 py-2 text-left">Licencias</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(correo, i) in props.correos.data" :key="correo.id"
                                     class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ i + 1 }}</td>
-                                    <td class="px-4 py-2">{{ correo.correo }}</td>
-                                    <td class="px-4 py-2">{{ correo.contrasena }}</td>
-                                    <td class="px-4 py-2">{{ correo.juego }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps4 }}</td>
-                                    <td class="px-4 py-2">{{ correo.primaria_ps5 }}</td>
-                                    <td class="px-4 py-2">{{ correo.secundaria }}</td>
+                                    <td class="px-4 py-2">
+                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">
+                                            {{ i + 1 }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-envelope text-blue-500"></i>
+                                                <span class="truncate">{{ correo.correo }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-md text-gray-600 mt-1">
+                                                <i class="fa-solid fa-key text-amber-500"></i>
+                                                <span>{{ correo.contrasena }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-gamepad text-purple-500"></i>
+
+                                                <span class="font-semibold text-gray-900">
+                                                    {{ correo.juego }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="inline-flex items-center bg-gradient-to-r from-blue-100 to-blue-200 text-blue-900 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">
+                                                PS4: {{ correo.primaria_ps4 }}
+                                            </span>
+
+                                            <span class="inline-flex items-center bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-900 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">
+                                                PS5: {{ correo.primaria_ps5 }}
+                                            </span>
+
+                                            <span class="inline-flex items-center bg-gradient-to-r from-green-100 to-green-200 text-green-900 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">
+                                                SEC: {{ correo.secundaria }}
+                                            </span>
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr v-if="props.correos.data.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="12">
+                                    <td class="px-4 py-2 text-center" colspan="4">
                                         No hay juegos registrados.
                                     </td>
                                 </tr>
@@ -158,18 +185,17 @@ const seleccionarJuego = async (nombreJuego) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
+                        <div class="flex flex-wrap justify-center gap-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-
-                            <button v-if="link.url"
-                                @click.prevent="irAPagina(link.url + '&search=' + encodeURIComponent(searchQuery))"
-                                v-html="link.label"
-                                class="px-3 py-1 border rounded-md"
-                                :class="link.active
-                                ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'"
-                            />
-
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
+                                    :class="link.active
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
+                                />
                             </template>
                         </div>
                     </div>

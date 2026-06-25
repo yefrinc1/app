@@ -204,14 +204,83 @@ const submitForm = () => {
                         <div>
                             <InputLabel for="codigo" value="Codigos" />
 
-                            <textarea
-                                id="codigo"
-                                ref="codigo"
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                rows="4"
-                                v-model="form.codigo"
-                                required
-                            ></textarea>
+                            <div class="relative">
+                                <textarea
+                                    id="codigo"
+                                    ref="codigo"
+                                    rows="4"
+                                    v-model="form.codigo"
+                                    required
+                                    class="
+                                        mt-1
+                                        block
+                                        w-full
+
+                                        rounded-xl
+
+                                        border
+                                        border-red-500/30
+
+                                        bg-gradient-to-r
+                                        from-white
+                                        via-red-50
+                                        to-amber-50
+
+                                        px-4
+                                        py-3
+                                        pr-12
+
+                                        text-gray-800
+                                        font-medium
+
+                                        shadow-md
+
+                                        transition-all
+                                        duration-300
+
+                                        hover:border-red-500/50
+
+                                        focus:outline-none
+                                        focus:border-amber-500
+
+                                        focus:ring-4
+                                        focus:ring-red-500/20
+
+                                        focus:shadow-lg
+                                        focus:shadow-red-500/20
+
+                                        resize-y
+                                    "
+                                ></textarea>
+
+                                <div
+                                    class="
+                                        pointer-events-none
+                                        absolute
+                                        top-4
+                                        right-4
+
+                                        flex
+                                        items-center
+                                        justify-center
+
+                                        h-8
+                                        w-8
+
+                                        rounded-lg
+
+                                        bg-gradient-to-r
+                                        from-red-500
+                                        to-amber-500
+
+                                        text-white
+
+                                        shadow-md
+                                    "
+                                >
+                                    <i class="fa-solid fa-key"></i>
+                                </div>
+                            </div>
 
 
                             <InputError :message="form.errors.codigo" class="mt-2" />

@@ -96,12 +96,6 @@ const eliminarCorreo = (id) => {
     });
 };
 
-const irAPagina = (url) => {
-    form.get(url, {
-        preserveScroll: false,
-        preserveState: true,
-    });
-};
 </script>
 
 <template>
@@ -132,24 +126,45 @@ const irAPagina = (url) => {
                         <table class="min-w-full border border-gray-200">
                             <thead>
                                 <tr class="bg-gray-100 border-b">
-                                    <th class="px-4 py-2 text-left">Correo</th>
-                                    <th class="px-4 py-2 text-left">Contraseña</th>
-                                    <th class="px-4 py-2 text-center">Acciones</th>
+                                    <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10">
+                                        Acciones
+                                    </th>
+                                    <th class="px-4 py-2 text-left">Cuenta</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="correo in props.correos.data" :key="correo.id"
                                     class="border-b hover:bg-gray-100">
-                                    <td class="px-4 py-2">{{ correo.correo }}</td>
-                                    <td class="px-4 py-2">{{ correo.contrasena }}</td>
-                                    <td class="px-4 py-2 flex justify-center space-x-2">
-                                        <DangerButton @click="eliminarCorreo(correo.id)">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </DangerButton>
+                                    <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <DangerButton class="w-8 h-8 flex items-center justify-center"
+                                                @click="eliminarCorreo(correo.id)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </DangerButton>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-2">
+                                        <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
+                                            <div class="flex items-center gap-2 text-md">
+                                                <i class="fa-solid fa-envelope text-blue-500"></i>
+                                                <span class="truncate">{{ correo.correo }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-md text-gray-600 mt-1">
+                                                <i class="fa-solid fa-key text-amber-500"></i>
+                                                <span>{{ correo.contrasena }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 text-sm text-purple-700 mt-1">
+                                                <i class="fa-solid fa-id-card text-purple-500"></i>
+                                                <span>Principal #{{ correo.id }}</span>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr v-if="props.correos.data.length === 0">
-                                    <td class="px-4 py-2 text-center" colspan="4">
+                                    <td class="px-4 py-2 text-center" colspan="2">
                                         No hay correos registrados.
                                     </td>
                                 </tr>
@@ -159,16 +174,16 @@ const irAPagina = (url) => {
 
                     <!-- Paginación -->
                     <div class="mt-4">
-                        <div class="flex justify-center space-x-2">
+                        <div class="flex flex-wrap justify-center gap-2">
                             <template v-for="(link, index) in props.correos.links" :key="index">
-
-                                <button v-if="link.url"
-                                    @click.prevent="irAPagina(link.url + '&search=' + encodeURIComponent(searchQuery))"
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
                                     v-html="link.label"
-                                    class="px-3 py-1 border rounded-md"
+                                    class="px-3 py-2 border rounded-md text-xs font-semibold transition ease-in-out duration-150"
                                     :class="link.active
-                                    ? 'px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
-                                    : 'px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition ease-in-out duration-150'"
+                                        ? 'bg-gray-800 text-white border-gray-800'
+                                        : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'"
                                 />
                             </template>
                         </div>

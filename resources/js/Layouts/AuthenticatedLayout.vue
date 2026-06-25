@@ -22,7 +22,7 @@ const showingNavigationDropdown = ref(false);
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationLogo class="block h-20 w-auto fill-current text-gray-800" />
+                                    <ApplicationLogo class="block h-14 w-auto fill-current text-gray-800" />
                                 </Link>
                             </div>
 
@@ -72,6 +72,8 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink :href="route('pagos.create')">💰 Pagos </DropdownLink>
                                         <DropdownLink :href="route('ventas.index')">🛍️ Consultar Ventas </DropdownLink>
                                         <DropdownLink :href="route('consultar-inventario')">🧰 Consultar Inventario </DropdownLink>
+                                        <DropdownLink :href="route('juegos.index')">🎮 Consultar Juegos </DropdownLink>
+                                        <DropdownLink :href="route('presupuestos.index')">📈 Consultar Presupuestos </DropdownLink>
                                     </template>
                                 </DropDownMenu>
                                 <DropDownMenu align="right" width="48">
@@ -191,6 +193,8 @@ const showingNavigationDropdown = ref(false);
                         <ResponsiveNavLink :href="route('pagos.create')" class="pl-4">💰 Pagos</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('ventas.index')" class="pl-4">🛍️ Consultar Ventas</ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('consultar-inventario')" class="pl-4">🧰 Consultar Inventario</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('juegos.index')" class="pl-4">🎮 Consultar Juegos</ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('presupuestos.index')" class="pl-4">📈 Consultar Presupuestos</ResponsiveNavLink>
                     </div>
 
                     <!-- 📈 Estadisticas -->

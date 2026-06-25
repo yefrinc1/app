@@ -60,16 +60,78 @@ const valorPorUsd = computed(() => {
                         <div>
                             <InputLabel for="id_correo_globales" :value="$t('Email')" />
 
-                            <select
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                v-model="form.id_correo_globales" 
-                                id="id_correo_globales"
-                                required
-                            >
-                                <option v-for="opcion in correosGlobales" :key="opcion.id" :value="opcion.id">
-                                    {{ opcion.correo }}
-                                </option>
-                            </select>
+                            <div class="relative">
+                                <select
+                                    id="id_correo_globales"
+                                    v-model="form.id_correo_globales"
+                                    required
+                                    class="
+                                        appearance-none
+
+                                        mt-1
+                                        block
+                                        w-full
+
+                                        rounded-xl
+
+                                        border
+                                        border-red-500/30
+
+                                        bg-gradient-to-r
+                                        from-white
+                                        via-red-50
+                                        to-amber-50
+
+                                        px-4
+                                        py-2.5
+                                        pr-10
+
+                                        text-gray-800
+                                        font-semibold
+
+                                        shadow-md
+
+                                        transition-all
+                                        duration-300
+
+                                        hover:border-red-500/50
+
+                                        focus:outline-none
+                                        focus:border-amber-500
+                                        focus:ring-4
+                                        focus:ring-red-500/20
+
+                                        focus:shadow-lg
+                                        focus:shadow-red-500/20
+                                    "
+                                >
+                                    <option value="">📧 Selecciona un correo global</option>
+
+                                    <option
+                                        v-for="opcion in correosGlobales"
+                                        :key="opcion.id"
+                                        :value="opcion.id"
+                                    >
+                                        {{ opcion.correo }}
+                                    </option>
+                                </select>
+
+                                <div
+                                    class="
+                                        pointer-events-none
+                                        absolute
+                                        inset-y-0
+                                        right-3
+
+                                        flex
+                                        items-center
+
+                                        text-amber-500
+                                    "
+                                >
+                                    <i class="fa-solid fa-envelope"></i>
+                                </div>
+                            </div>
                         
                             <InputError class="mt-2" :message="form.errors.id_correo_globales" />
                         </div>
@@ -147,14 +209,69 @@ const valorPorUsd = computed(() => {
                         <div>
                             <InputLabel for="codigo" value="Codigos" />
 
-                            <textarea
-                                id="codigo"
-                                ref="codigo"
-                                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 block w-full"
-                                rows="4"
-                                v-model="form.codigo"
-                            ></textarea>
+                            <div class="relative">
+                                <textarea
+                                    id="codigo"
+                                    ref="codigo"
+                                    rows="4"
+                                    v-model="form.codigo"
+                                    placeholder="Ingresa aquí el código..."
+                                    class="
+                                        mt-1
+                                        block
+                                        w-full
 
+                                        rounded-xl
+
+                                        border
+                                        border-red-500/30
+
+                                        bg-gradient-to-r
+                                        from-white
+                                        via-red-50
+                                        to-amber-50
+
+                                        px-4
+                                        py-3
+
+                                        text-gray-800
+                                        font-medium
+
+                                        placeholder:text-gray-400
+
+                                        shadow-md
+
+                                        transition-all
+                                        duration-300
+
+                                        hover:border-red-500/50
+
+                                        focus:outline-none
+                                        focus:border-amber-500
+
+                                        focus:ring-4
+                                        focus:ring-red-500/20
+
+                                        focus:shadow-lg
+                                        focus:shadow-red-500/20
+
+                                        resize-none
+                                    "
+                                ></textarea>
+
+                                <div
+                                    class="
+                                        pointer-events-none
+                                        absolute
+                                        top-4
+                                        right-3
+
+                                        text-amber-500
+                                    "
+                                >
+                                    <i class="fa-solid fa-code"></i>
+                                </div>
+                            </div>
 
                             <InputError :message="form.errors.codigo" class="mt-2" />
                         </div>
