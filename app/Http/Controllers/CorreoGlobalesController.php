@@ -19,7 +19,8 @@ class CorreoGlobalesController extends Controller
         })
         ->orderBy('disponible', 'desc') // Ordena por 'disponible'
         ->latest() // Ordena por fecha
-        ->paginate(10);
+        ->paginate(10)
+        ->appends($request->query());
     
         return Inertia::render('CorreoGlobales/Index', [
             'correos' => $correosGlobales,

@@ -22,7 +22,8 @@ class CorreoPrincipalController extends Controller
             return $query->where('correo', 'like', "%{$search}%");
         })
         ->latest() // Ordena por fecha
-        ->paginate(10);
+        ->paginate(10)
+        ->appends($request->query());
     
         return Inertia::render('CorreoPrincipal/Index', [
             'correos' => $correos,

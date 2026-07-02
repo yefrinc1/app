@@ -25,7 +25,8 @@ class CorreoJuegoController extends Controller
         })
         ->orderBy('disponible', 'desc') // Ordena por 'disponible'
         ->latest() // Ordena por fecha
-        ->paginate(10);
+        ->paginate(10)
+        ->appends($request->query());
     
         return Inertia::render('CorreoJuego/Index', [
             'correos' => $correos,
@@ -204,7 +205,10 @@ class CorreoJuegoController extends Controller
             $icon_mensaje = 'error';
         }
 
-        return redirect()->route('correo-juegos.index', ['mensaje_correo_creado' => $mensaje, 'icon_mensaje' => $icon_mensaje]);
+        return redirect()->route('correo-juegos.index', [
+            'mensaje_correo_creado' => $mensaje,
+            'icon_mensaje' => $icon_mensaje,
+        ]);
     }
 
     public function update(Request $request, string $id)
@@ -212,7 +216,6 @@ class CorreoJuegoController extends Controller
         $request->validate([
             'contrasena' => 'required|string|min:6',
             'fecha_nacimiento' => 'required',
-            'juego' => 'required',
             'primaria_ps4' => 'required',
             'primaria_ps5' => 'required',
             'secundaria' => 'required',
@@ -294,7 +297,12 @@ class CorreoJuegoController extends Controller
             }
         }
 
-        return redirect()->route('correo-juegos.index', ['mensaje_correo_creado' => $mensaje, 'icon_mensaje' => $icon_mensaje]);
+        return redirect()->route('correo-juegos.index', [
+            'page' => $request->page,
+            'search' => $request->search,
+            'mensaje_correo_creado' => $mensaje,
+            'icon_mensaje' => $icon_mensaje,
+        ]);
     }
 
     public function destroy(string $id)
@@ -329,7 +337,8 @@ class CorreoJuegoController extends Controller
         })        
         ->where('disponible', 1)
         ->latest()
-        ->paginate(10);
+        ->paginate(10)
+        ->appends($request->query());
 
         return Inertia::render('CorreoJuego/Inventario', [
             'correos' => $correos,

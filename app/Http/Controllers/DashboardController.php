@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Presupuesto;
 
 class DashboardController extends Controller
 {
@@ -89,7 +90,7 @@ class DashboardController extends Controller
                 'roi' => round($roiMes, 2)
             ]);
         }
-        
+
         $resumenMesActual = ResumenMensual::where('periodo', $hoy->format('m/Y'))->get()->first();
 
         $ventasMesCompletas = [
@@ -118,9 +119,34 @@ class DashboardController extends Controller
             'roi' => round($roiTotal, 2),
         ];
 
-        $presupuestoDiario = config('app.presupuesto_diario');
+        $presupuestoMes = Presupuesto::where('anio', $anioActual)
+            ->where('mes', $hoy->month)
+            ->first();
+
+        $ventasObjetivoMes = intval($presupuestoMes?->ventas_objetivo ?? 0);
+        $ingresosObjetivoMes = intval($presupuestoMes?->ingresos_objetivo ?? 0);
+        $utilidadObjetivoMes = intval($presupuestoMes?->utilidad_objetivo ?? 0);
+
+        $presupuestoDiario = $presupuestoMes
+            ? intval(round($presupuestoMes->ingresos_objetivo / $hoy->daysInMonth))
+            : 0;
+
+        $ventasObjetivoDiario = $presupuestoMes
+            ? intval(round($presupuestoMes->ventas_objetivo / $hoy->daysInMonth))
+            : 0;
+
+        $utilidadObjetivoDiario = $presupuestoMes
+            ? intval(round($presupuestoMes->utilidad_objetivo / $hoy->daysInMonth))
+            : 0;
+
         $graficaCumplimientoDiario = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%d") AS fecha')
-            ->selectRaw("ROUND((SUM(precio) / $presupuestoDiario) * 100, 2) AS suma_dividida")
+            ->selectRaw("
+                CASE 
+                    WHEN $presupuestoDiario > 0 
+                    THEN ROUND((SUM(precio) / $presupuestoDiario) * 100, 2)
+                    ELSE 0 
+                END AS suma_dividida
+            ")
             ->groupBy(DB::raw('DATE_FORMAT(created_at, "%m/%d")'))
             ->whereYear('created_at', $anioActual)
             ->whereRaw('DATE_FORMAT(created_at, "%m/%d") <= ?', [$hoy->format('m/d')])
@@ -156,15 +182,27 @@ class DashboardController extends Controller
             }
         }
 
-        $presupuestoMensual = config('app.presupuesto_mensual');
-        $graficaCumplimientoMensual = ResumenMensual::select(
-                DB::raw('periodo AS fecha'),
-                DB::raw("ROUND((ingresos / $presupuestoMensual) * 100, 2) AS suma_dividida")
-            )
-            ->orderBy('id', 'DESC')
+        $graficaCumplimientoMensual = ResumenMensual::orderBy('id', 'DESC')
             ->limit(8)
-            ->get();
-        
+            ->get()
+            ->map(function ($resumen) {
+
+                [$mes, $anio] = explode('/', $resumen->periodo);
+
+                $presupuesto = Presupuesto::where('anio', $anio)
+                    ->where('mes', (int) $mes)
+                    ->first();
+
+                $presupuestoMensual = $presupuesto?->ingresos_objetivo ?? 0;
+
+                return [
+                    'fecha' => $resumen->periodo,
+                    'suma_dividida' => $presupuestoMensual > 0
+                        ? round(($resumen->ingresos / $presupuestoMensual) * 100, 2)
+                        : 0,
+                ];
+            });
+
         $graficaCumplimientoMensual = $graficaCumplimientoMensual->toArray();
         $fechaObjetivoMes = $hoy->format('m/Y');
 
@@ -194,6 +232,15 @@ class DashboardController extends Controller
             "ventas_totales" => $ventasTotales,
             "grafica_cumplimiento_diario" => $graficaCumplimientoDiario,
             "grafica_cumplimiento_mensual" => $graficaCumplimientoMensual,
+            "presupuesto_actual" => [
+                "ventas_objetivo_mes" => intval($ventasObjetivoMes),
+                "ingresos_objetivo_mes" => intval($ingresosObjetivoMes),
+                "utilidad_objetivo_mes" => intval($utilidadObjetivoMes),
+
+                "ventas_objetivo_diario" => round($ventasObjetivoDiario, 2),
+                "ingresos_objetivo_diario" => round($presupuestoDiario, 2),
+                "utilidad_objetivo_diario" => round($utilidadObjetivoDiario, 2),
+            ],
             "mensaje" => $mensaje,
         ]);
     }

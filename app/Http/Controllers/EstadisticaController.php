@@ -37,7 +37,8 @@ class EstadisticaController extends Controller
             ->whereNotNull('v.total_vendido')
             ->where('c.juego', 'like', "%{$search}%")
             ->orderByDesc('diferencia')
-            ->paginate(10);
+            ->paginate(10)
+            ->appends($request->query());
 
         return Inertia::render('Estadistica/RentabilidadJuegos', [
             'juegos' => $juegos,

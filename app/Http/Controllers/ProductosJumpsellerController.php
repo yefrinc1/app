@@ -250,6 +250,7 @@ private function mapearProductoOferta($data, $config)
         $paginas = (int) ceil($total / $porPagina);
 
         $todosLosProductosJumpseller = [];
+        $productosconimagenes = [];
 
         for ($i = 1; $i <= $paginas; $i++) {
             $productos = $jumpseller->getProductoAll($porPagina, $i);
@@ -259,11 +260,27 @@ private function mapearProductoOferta($data, $config)
 
             foreach ($productos as $producto) {
                 $todosLosProductosJumpseller[] = $producto['product']['name'];
+                if (!empty($producto['product']['images'])) {
+                    $productosconimagenes[] = [
+                        'nombre' => $producto['product']['name'],
+                    ];
+                }
             }
         }
 
-        $todosLosJuegos = CorreoJuego::distinct()->pluck('juego')->toArray();
+        $juegosExcluir = [
+            '',
+            'PlayStation Plus Essential: 1 Month Subscription',
+            'PlayStation Plus Essential: 12 Month Subscription',
+            'Grand Theft Auto V (PlayStation®5)',
+            'Grand Theft Auto V: Premium Edition'
+        ];
 
+        $todosLosJuegos = CorreoJuego::whereNotNull('juego')
+            ->whereNotIn('juego', $juegosExcluir)
+            ->distinct()
+            ->pluck('juego')
+            ->toArray();
         $juegosConEstado = [];
 
         foreach ($todosLosJuegos as $juego) {
