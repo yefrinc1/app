@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\CodigoVerificacion;
 use App\Models\CorreoJuego;
 use App\Models\Movimientos;
@@ -79,6 +80,7 @@ class VentasController extends Controller
         $mesActual = $hoy->month;
         $anioActual = $hoy->year;
 
+        $cliente = $this->buscarOCrearCliente($request->cliente);
 
         if ($request->tipo_cuenta == 'Primaria') {
             if ($request->consola == 'PS4') {
@@ -148,6 +150,7 @@ class VentasController extends Controller
 
             if ($codigoVerificacion->isEmpty()) {
                 Ventas::create([
+                    'cliente_id' => $cliente->id,
                     'id_correo_juego' => $correoJuego->id,
                     'cliente' => $request->cliente,
                     'tipo_cuenta' => $request->tipo_cuenta,
@@ -199,6 +202,7 @@ class VentasController extends Controller
     
                 if ($codigosLibres > 0) {
                     Ventas::create([
+                        'cliente_id' => $cliente->id,
                         'id_correo_juego' => $correoJuego->id,
                         'cliente' => $request->cliente,
                         'tipo_cuenta' => $request->tipo_cuenta,
@@ -568,5 +572,36 @@ class VentasController extends Controller
         $venta = Ventas::findOrFail($id);
         $venta->delete();
         return redirect()->back();
+    }
+
+    private function buscarOCrearCliente(string $cliente): Cliente
+    {
+        $cliente = trim($cliente);
+
+        // Eliminar espacios, +, -, paréntesis, etc.
+        $soloNumeros = preg_replace('/\D/', '', $cliente);
+
+        // Si tiene entre 7 y 15 dígitos, se considera teléfono
+        if (strlen($soloNumeros) >= 7 && strlen($soloNumeros) <= 15) {
+
+            $codigoPais = '57';
+            $telefono = $soloNumeros;
+
+            // Si tiene más de 10 dígitos, asumimos que incluye código de país
+            if (strlen($soloNumeros) > 10) {
+                $codigoPais = substr($soloNumeros, 0, strlen($soloNumeros) - 10);
+                $telefono = substr($soloNumeros, -10);
+            }
+
+            return Cliente::firstOrCreate([
+                'codigo_pais' => $codigoPais,
+                'telefono' => $telefono,
+            ]);
+        }
+
+        // Si no es teléfono, se considera usuario de Instagram
+        return Cliente::firstOrCreate([
+            'usuario' => strtolower($cliente),
+        ]);
     }
 }

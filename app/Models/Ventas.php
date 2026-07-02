@@ -17,4 +17,9 @@ class Ventas extends Model
     {
         return $this->belongsTo(CorreoJuego::class, 'id_correo_juego');
     }
+
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class);
+    }
 }
