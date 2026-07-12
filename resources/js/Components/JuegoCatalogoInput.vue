@@ -21,6 +21,7 @@ const sugerencias = ref([]);
 const juegoValido = ref(null);
 const juegoSeleccionado = ref(false);
 const imagenJuegoSeleccionado = ref(null);
+const emit = defineEmits(['juego-seleccionado']);
 
 const buscarJuegos = async () => {
     juegoSeleccionado.value = false;
@@ -56,6 +57,8 @@ const seleccionarJuego = (juego) => {
     sugerencias.value = [];
     juegoValido.value = true;
     juegoSeleccionado.value = true;
+
+    emit('juego-seleccionado', juego.nombre);
 };
 
 watch(model, (valor) => {

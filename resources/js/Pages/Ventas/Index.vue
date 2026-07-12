@@ -65,24 +65,6 @@ if (props.resultado_consulta && props.resultado_consulta.length > 0) {
     })
 }
 
-const formatFecha = (fecha) => {
-    if (!fecha) return "";
-
-    const fechaLimpia = fecha.replace("T", " ").split(".")[0];
-    const [fechaParte, horaParte] = fechaLimpia.split(" ");
-
-    const [year, month, day] = fechaParte.split("-");
-    const [hour, minute, second] = horaParte.split(":");
-
-    let hora = Number(hour);
-    const ampm = hora >= 12 ? "p. m." : "a. m.";
-
-    hora = hora % 12;
-    hora = hora ? hora : 12;
-
-    return `${day}/${month}/${year}, ${hora}:${minute}:${second} ${ampm}`;
-};
-
 // Observa cambios en modelValue y actualiza searchQuery
 watch(
     () => props.modelValue,
@@ -159,6 +141,18 @@ const eliminarVenta = (id) => {
 
 const formatoCop = (valor) => {
     return Number(valor || 0).toLocaleString('es-CO');
+};
+
+const formatearFecha = (fecha) => {
+    if (!fecha) return '';
+
+    return new Intl.DateTimeFormat('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(fecha));
 };
 
 const claseTipoCuenta = (tipoCuenta) => {
@@ -409,7 +403,7 @@ const claseMedioPago = (medioPago) => {
                                         <td class="px-4 py-2">
                                             <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-bold min-w-[170px]">
                                                 <i class="fa-regular fa-clock"></i>
-                                                {{ formatFecha(venta.created_at) }}
+                                                {{ formatearFecha(venta.created_at) }}
                                             </span>
                                         </td>
 

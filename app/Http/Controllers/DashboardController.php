@@ -139,22 +139,35 @@ class DashboardController extends Controller
             ? intval(round($presupuestoMes->utilidad_objetivo / $hoy->daysInMonth))
             : 0;
 
-        $graficaCumplimientoDiario = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%d") AS fecha')
-            ->selectRaw("
-                CASE 
-                    WHEN $presupuestoDiario > 0 
-                    THEN ROUND((SUM(precio) / $presupuestoDiario) * 100, 2)
-                    ELSE 0 
-                END AS suma_dividida
-            ")
-            ->groupBy(DB::raw('DATE_FORMAT(created_at, "%m/%d")'))
-            ->whereYear('created_at', $anioActual)
-            ->whereRaw('DATE_FORMAT(created_at, "%m/%d") <= ?', [$hoy->format('m/d')])
-            ->orderByRaw('fecha DESC')
-            ->limit(8)
-            ->get();
-        
-        $graficaCumplimientoDiario = $graficaCumplimientoDiario->toArray();
+        $graficaCumplimientoDiario = Ventas::selectRaw('DATE_FORMAT(created_at, "%m/%d") as fecha')
+            ->selectRaw('SUM(precio) as ingresos')
+            ->whereBetween('created_at', [
+                $hoy->copy()->subDays(7)->startOfDay(),
+                $hoy->copy()->endOfDay(),
+            ])
+            ->groupBy(
+                DB::raw('DATE_FORMAT(created_at, "%m/%d")')
+            )
+            ->orderBy('fecha')
+            ->get()
+            ->toArray();
+
+        foreach ($graficaCumplimientoDiario as $clave => $dia) {
+            $fecha = Carbon::parse($dia['fecha']);
+
+            $presupuesto = Presupuesto::where('anio', $fecha->year)
+                ->where('mes', $fecha->month)
+                ->first();
+
+            $presupuestoDiario = $presupuesto
+                ? round($presupuesto->ingresos_objetivo / $fecha->daysInMonth)
+                : 0;
+
+            $graficaCumplimientoDiario[$clave]['suma_dividida'] = $presupuestoDiario > 0
+                ? round(($dia['ingresos'] / $presupuestoDiario) * 100, 2)
+                : 0;
+        }
+
         $fechaObjetivoDia = $hoy->format('m/d');
 
         // Verifica si la fecha ya existe en el array

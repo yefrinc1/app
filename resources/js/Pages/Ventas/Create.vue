@@ -44,16 +44,20 @@ const codigoRef = ref(null);
 const textoCopiado = ref(false);
 const inventarioDisponible = ref(null);
 const verificandoInventario = ref(false);
+const alSeleccionarJuego = () => {
+    if (form.juego && form.tipo_cuenta && form.consola) {
+        verificarInventario();
+    }}
+;
 
 // Observa cambios en modelValue y actualiza searchQuery
 watch(
     [
-        () => form.juego,
         () => form.tipo_cuenta,
         () => form.consola
     ],
-    ([juego, tipoCuenta, consola]) => {
-        if (juego && tipoCuenta && consola) {
+    ([tipoCuenta, consola]) => {
+        if (form.juego != '' && tipoCuenta && consola) {
             verificarInventario();
         } else {
             inventarioDisponible.value = null;
@@ -226,6 +230,7 @@ const verificarInventario = async () => {
                                             v-model="form.juego"
                                             input-id="juego_manual"
                                             :error="form.errors.juego"
+                                            @juego-seleccionado="alSeleccionarJuego"
                                         />
                                     </div>
 
