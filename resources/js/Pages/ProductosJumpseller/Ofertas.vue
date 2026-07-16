@@ -1,8 +1,10 @@
 <script setup>
-import { defineProps } from "vue";
+import { computed, defineProps, ref } from "vue";
 import { Head, useForm } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import DangerButton from '@/Components/DangerButton.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -16,6 +18,23 @@ const form = useForm({});
 const formMasivo = useForm({
     ids: []
 });
+
+// Los productos seleccionados aquí conservarán su oferta.
+const idsConservar = ref([]);
+
+const productosAQuitar = computed(() => {
+    return props.productos.filter(producto => !idsConservar.value.includes(producto.id));
+});
+
+const todosConservados = computed(() => {
+    return props.productos.length > 0 && idsConservar.value.length === props.productos.length;
+});
+
+function conservarTodos() {
+    idsConservar.value = todosConservados.value
+        ? []
+        : props.productos.map(producto => producto.id);
+}
 
 function quitarOferta(id) {
     Swal.fire({
@@ -54,13 +73,21 @@ function quitarOferta(id) {
 }
 
 function quitarTodasLasOfertas() {
-    const todosLosIds = props.productos.map(p => p.id);
+    const idsAQuitar = productosAQuitar.value.map(producto => producto.id);
 
-    if (todosLosIds.length === 0) return;
+    if (idsAQuitar.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'No hay ofertas para quitar',
+            text: 'Todos los productos están marcados para conservar su oferta.'
+        });
+        return;
+    }
 
     Swal.fire({
         title: '¿Estás seguro?',
-        text: `Se quitará la oferta de ${todosLosIds.length} productos.`,
+        html: `Se quitará la oferta de <strong>${idsAQuitar.length}</strong> productos.<br>
+               Se conservará la oferta de <strong>${idsConservar.value.length}</strong> productos.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, quitar todas',
@@ -73,12 +100,12 @@ function quitarTodasLasOfertas() {
                 didOpen: () => Swal.showLoading()
             });
 
-            formMasivo.ids = todosLosIds;
+            formMasivo.ids = idsAQuitar;
 
             formMasivo.post(route('productos-oferta-jumpseller.quitar-todas'), {
                 onSuccess: () => {
                     Swal.close();
-                    Swal.fire('¡Listo!', 'Todas las ofertas han sido removidas.', 'success');
+                    Swal.fire('¡Listo!', `Se procesaron ${idsAQuitar.length} ofertas.`, 'success');
                 },
                 onError: () => {
                     Swal.close();
@@ -137,12 +164,12 @@ const formatoPrecio = (valor) => {
 
                                 <DangerButton
                                     v-if="productos.length > 0"
-                                    :disabled="formMasivo.processing"
+                                    :disabled="formMasivo.processing || productosAQuitar.length === 0"
                                     @click="quitarTodasLasOfertas"
                                     class="w-full sm:w-auto justify-center"
                                 >
                                     <i class="fa-solid fa-ban mr-2"></i>
-                                    Quitar todas
+                                    Quitar restantes ({{ productosAQuitar.length }})
                                 </DangerButton>
                             </div>
                         </div>
@@ -163,9 +190,13 @@ const formatoPrecio = (valor) => {
                                 </p>
                             </div>
 
-                            <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold w-fit">
-                                {{ productos.length }} ofertas
-                            </span>
+                            <PrimaryButton
+                                v-if="productos.length > 0"
+                                type="button"
+                                @click="conservarTodos"
+                            >
+                                {{ todosConservados ? 'Desmarcar todos' : 'Conservar todos' }}
+                            </PrimaryButton>
                         </div>
 
                         <div class="overflow-x-auto shadow rounded-lg">
@@ -175,6 +206,7 @@ const formatoPrecio = (valor) => {
                                         <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
                                             Acción
                                         </th>
+                                        <th class="px-4 py-2 text-center">Conservar oferta</th>
                                         <th class="px-4 py-2 text-left">Producto</th>
                                         <th class="px-4 py-2 text-left">Primaria PS4</th>
                                         <th class="px-4 py-2 text-left">Primaria PS5</th>
@@ -201,6 +233,20 @@ const formatoPrecio = (valor) => {
                                                     Quitar
                                                 </DangerButton>
                                             </div>
+                                        </td>
+
+                                        <!-- Excluir de la eliminación masiva -->
+                                        <td class="px-4 py-2 text-center">
+                                            <label class="flex items-center">
+                                                <Checkbox 
+                                                    v-model:checked="idsConservar"
+                                                    :value="producto.id" 
+                                                />
+
+                                                <span class="font-semibold text-gray-700">
+                                                    No quitar
+                                                </span>
+                                            </label>
                                         </td>
 
                                         <!-- Producto -->
@@ -316,7 +362,7 @@ const formatoPrecio = (valor) => {
                                     </tr>
 
                                     <tr v-if="productos.length === 0">
-                                        <td class="px-4 py-10 text-center" colspan="6">
+                                        <td class="px-4 py-10 text-center" colspan="7">
                                             <div class="flex flex-col items-center gap-3">
                                                 <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
                                                     <i class="fa-solid fa-tags text-2xl"></i>

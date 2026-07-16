@@ -227,7 +227,12 @@ private function mapearProductoOferta($data, $config)
 
     public function quitarTodasOfertas(Request $request, JumpsellerApiService $jumpseller)
     {
-        $ids = $request->input('ids', []);
+        $datos = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $ids = $datos['ids'];
 
         foreach ($ids as $id) {
             // Reutilizamos la lógica llamando al método existente
@@ -235,7 +240,9 @@ private function mapearProductoOferta($data, $config)
             $this->quitarOferta($id, $jumpseller);
         }
 
-        return redirect()->back()->with('mensaje', 'Se han procesado todas las ofertas.')->with('tipo', 'success');
+        return redirect()->back()
+            ->with('mensaje', 'Se procesaron '.count($ids).' ofertas. Los productos seleccionados se conservaron.')
+            ->with('tipo', 'success');
     }
 
     public function sincronizarProductos(JumpsellerApiService $jumpseller){
