@@ -12,6 +12,12 @@ use Inertia\Inertia;
 
 class CorreoJuegoController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:correos.juegos', ['only' => ['index', 'create', 'store', 'update', 'destroy']]);
+        $this->middleware('can:correos.juegos.manual', ['only' => ['crearJuegoManual', 'storeManual']]);
+    }
+    
     public function index(Request $request)
     {
         // Obtén el término de búsqueda

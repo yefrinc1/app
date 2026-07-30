@@ -1,6 +1,6 @@
 <script setup>
-import { defineProps } from "vue";
-import { Head, useForm } from "@inertiajs/vue3";
+import { defineProps, computed } from "vue";
+import { Head, useForm, usePage } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import Swal from 'sweetalert2';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -8,6 +8,16 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 const props = defineProps({
     ventas_ultimo_pago: Array,
 });
+
+const page = usePage()
+
+const permissions = computed(() => {
+    return page.props.auth?.permissions ?? []
+})
+
+const puedeRegistrarPago = computed(() => {
+    return permissions.value.includes('finanzas.registrar.pago')
+})
 
 const form = useForm({
     id_usuario: '',
@@ -149,7 +159,7 @@ const totalPendiente = () => {
                             <table class="min-w-full border border-gray-200">
                                 <thead>
                                     <tr class="bg-gray-100 border-b">
-                                        <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
+                                        <th v-if="puedeRegistrarPago" class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
                                             Acción
                                         </th>
                                         <th class="px-4 py-2 text-left">Usuario</th>
@@ -166,7 +176,7 @@ const totalPendiente = () => {
                                         class="border-b hover:bg-gray-100"
                                     >
                                         <!-- Acción -->
-                                        <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <td v-if="puedeRegistrarPago" class="sticky right-0 bg-white px-4 py-2 z-10">
                                             <div class="flex justify-center">
                                                 <PrimaryButton
                                                     class="w-full sm:w-auto justify-center"
@@ -204,7 +214,7 @@ const totalPendiente = () => {
                                         <td class="px-4 py-2">
                                             <span class="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm font-bold">
                                                 <i class="fa-solid fa-cart-shopping"></i>
-                                                {{ info_pago.total_ventas }} ventas
+                                                ${{ formatoCop(info_pago.total_ventas) }} COP
                                             </span>
                                         </td>
 

@@ -9,6 +9,11 @@ use Inertia\Inertia;
 
 class PresupuestoController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:finanzas.presupuesto', ['only' => ['index', 'store', 'update', 'destroy']]);
+    }
+    
     public function index(Request $request)
     {
         $search = trim($request->get('search', ''));

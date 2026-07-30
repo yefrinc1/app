@@ -11,6 +11,13 @@ use Inertia\Inertia;
 
 class CodigoVerificacionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:codigos.consultar', ['only' => ['index', 'consultarTodosCodigos']]);
+        $this->middleware('can:codigos.generar', ['only' => ['generarCodigo', 'generarCodigoDisponible']]);
+        $this->middleware('can:codigos.crear', ['only' => ['create', 'store']]);
+    }
+
     public function index()
     {
         return Inertia::render('CodigoVerificacion/Index');

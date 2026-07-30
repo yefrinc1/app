@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
-    Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->name('consultar-inventario');
+    Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->middleware('can:inventario.consultar')->name('consultar-inventario');;
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');

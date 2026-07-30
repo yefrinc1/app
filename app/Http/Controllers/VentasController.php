@@ -16,6 +16,22 @@ use Inertia\Inertia;
 
 class VentasController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:ventas.ver')
+            ->only(['index', 'show']);
+
+        $this->middleware('can:ventas.crear')
+            ->only(['create', 'store']);
+
+        $this->middleware('can:ventas.editar')
+            ->only(['edit', 'update']);
+
+        $this->middleware('can:ventas.eliminar')
+            ->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $juego = $request->input('juego');

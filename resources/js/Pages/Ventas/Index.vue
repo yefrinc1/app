@@ -4,9 +4,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
-import { defineProps } from "vue";
+import { defineProps, computed } from "vue";
 import TextInput from '@/Components/TextInput.vue';
-import { useForm, Head, Link } from '@inertiajs/vue3';
+import { useForm, Head, Link,usePage } from '@inertiajs/vue3';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import { ref, watch } from "vue";
 import axios from "axios";
@@ -18,6 +18,20 @@ const props = defineProps({
     filtros: Object,
     mensaje_edit: String,
 });
+
+const page = usePage()
+
+const permissions = computed(() => {
+    return page.props.auth?.permissions ?? []
+})
+
+const puedeEditarVenta = computed(() => {
+    return permissions.value.includes('ventas.editar')
+})
+
+const puedeEliminarVenta = computed(() => {
+    return permissions.value.includes('ventas.eliminar')
+})
 
 const swalWithTailwind = Swal.mixin({
     buttonsStyling: true
@@ -52,7 +66,6 @@ if (props.resultado_consulta && props.resultado_consulta.length > 0) {
     form.correo = props.filtros.correo
     form.fecha = props.filtros.fecha
     sectionConsultar.value = true;
-    window.location.href = '#section-resultado';
 } else {
     form.juego = props.filtros.juego
     form.cliente = props.filtros.cliente
@@ -354,7 +367,7 @@ const claseMedioPago = (medioPago) => {
                             <table class="min-w-full border border-gray-200">
                                 <thead>
                                     <tr class="bg-gray-100 border-b">
-                                        <th class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
+                                        <th v-if="puedeEditarVenta || puedeEliminarVenta" class="sticky right-0 bg-gray-100 px-4 py-2 z-10 text-center">
                                             Acciones
                                         </th>
                                         <th class="px-4 py-2 text-left">#</th>
@@ -375,15 +388,15 @@ const claseMedioPago = (medioPago) => {
                                         class="border-b hover:bg-gray-100"
                                     >
                                         <!-- Acciones -->
-                                        <td class="sticky right-0 bg-white px-4 py-2 z-10">
+                                        <td v-if="puedeEditarVenta || puedeEliminarVenta" class="sticky right-0 bg-white px-4 py-2 z-10">
                                             <div class="flex flex-col items-center gap-2">
-                                                <Link :href="route('ventas.edit', venta.id)">
+                                                <Link v-if="puedeEditarVenta" :href="route('ventas.edit', venta.id)">
                                                     <SecondaryButton class="w-8 h-8 flex items-center justify-center">
                                                         <i class="fa-solid fa-user-pen"></i>
                                                     </SecondaryButton>
                                                 </Link>
 
-                                                <DangerButton
+                                                <DangerButton v-if="puedeEliminarVenta"
                                                     class="w-8 h-8 flex items-center justify-center"
                                                     @click="eliminarVenta(venta.id)"
                                                 >

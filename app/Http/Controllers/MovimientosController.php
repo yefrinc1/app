@@ -8,6 +8,11 @@ use Inertia\Inertia;
 
 class MovimientosController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:finanzas.movimientos', ['only' => ['index', 'store', 'update', 'destroy']]);
+    }
+
     public function index()
     {
         $movimientos = Movimientos::latest()->paginate(10);

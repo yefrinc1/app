@@ -10,6 +10,11 @@ use Inertia\Inertia;
 
 class AgregarUsuarioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:usuarios.crear', ['only' => ['create', 'store']]);
+    }
+    
     public function create()
     {
         return Inertia::render('AgregarUsuario');
@@ -23,11 +28,13 @@ class AgregarUsuarioController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        User::create([
+        $usuario = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        $usuario->assignRole('asesor');
 
         return redirect(route('dashboard', ['mensaje' => 'Usuario creado con exito']));
     }

@@ -11,9 +11,10 @@ use Inertia\Inertia;
 
 class PagoController extends Controller
 {
-    public function index()
+    public function __construct()
     {
-
+        $this->middleware('can:finanzas.ver.pago', ['only' => ['create']]);
+        $this->middleware('can:finanzas.registrar.pago', ['only' => ['store']]);
     }
 
     public function create()

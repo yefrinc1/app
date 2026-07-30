@@ -12,6 +12,7 @@ use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Presupuesto;
+use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
@@ -245,7 +246,8 @@ class DashboardController extends Controller
             "ventas_totales" => $ventasTotales,
             "grafica_cumplimiento_diario" => $graficaCumplimientoDiario,
             "grafica_cumplimiento_mensual" => $graficaCumplimientoMensual,
-            "presupuesto_actual" => [
+            "presupuesto_actual" => $request->user()->can('dashboard.totales.ver') ?
+            [
                 "ventas_objetivo_mes" => intval($ventasObjetivoMes),
                 "ingresos_objetivo_mes" => intval($ingresosObjetivoMes),
                 "utilidad_objetivo_mes" => intval($utilidadObjetivoMes),
@@ -253,7 +255,7 @@ class DashboardController extends Controller
                 "ventas_objetivo_diario" => round($ventasObjetivoDiario, 2),
                 "ingresos_objetivo_diario" => round($presupuestoDiario, 2),
                 "utilidad_objetivo_diario" => round($utilidadObjetivoDiario, 2),
-            ],
+            ] : null,
             "mensaje" => $mensaje,
         ]);
     }

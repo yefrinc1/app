@@ -34,6 +34,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'auth.permissions' => fn () =>
+                $request->user()
+                    ? $request->user()
+                        ->getAllPermissions()
+                        ->pluck('name')
+                        ->values()
+                    : [],
         ];
     }
 }

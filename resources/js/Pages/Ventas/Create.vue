@@ -309,102 +309,74 @@ const verificarInventario = async () => {
 
                                     <div>
                                         <InputLabel for="consola" value="Consola" />
+                                        <div class="relative">
+                                            <select
+                                                id="consola"
+                                                v-model="form.consola"
+                                                required
+                                                class="
+                                                    appearance-none
 
-                                        <div class="flex items-end gap-3">
-                                            <div class="w-full">
-                                                <div class="relative">
-                                                    <select
-                                                        id="consola"
-                                                        v-model="form.consola"
-                                                        required
-                                                        class="
-                                                            appearance-none
+                                                    mt-1
+                                                    block
+                                                    w-full
 
-                                                            mt-1
-                                                            block
-                                                            w-full
+                                                    rounded-xl
 
-                                                            rounded-xl
+                                                    border
+                                                    border-red-500/30
 
-                                                            border
-                                                            border-red-500/30
+                                                    bg-gradient-to-r
+                                                    from-white
+                                                    via-red-50
+                                                    to-amber-50
 
-                                                            bg-gradient-to-r
-                                                            from-white
-                                                            via-red-50
-                                                            to-amber-50
+                                                    px-4
+                                                    py-2.5
+                                                    pr-10
 
-                                                            px-4
-                                                            py-2.5
-                                                            pr-10
+                                                    text-gray-800
+                                                    font-semibold
 
-                                                            text-gray-800
-                                                            font-semibold
+                                                    shadow-md
 
-                                                            shadow-md
+                                                    transition-all
+                                                    duration-300
 
-                                                            transition-all
-                                                            duration-300
+                                                    hover:border-red-500/50
 
-                                                            hover:border-red-500/50
+                                                    focus:outline-none
+                                                    focus:border-amber-500
+                                                    focus:ring-4
+                                                    focus:ring-red-500/20
 
-                                                            focus:outline-none
-                                                            focus:border-amber-500
-                                                            focus:ring-4
-                                                            focus:ring-red-500/20
+                                                    focus:shadow-lg
+                                                    focus:shadow-red-500/20
+                                                "
+                                            >
+                                                <option value="">Selecciona una consola</option>
+                                                <option value="PS4">PlayStation 4 (PS4)</option>
+                                                <option value="PS5">PlayStation 5 (PS5)</option>
+                                            </select>
 
-                                                            focus:shadow-lg
-                                                            focus:shadow-red-500/20
-                                                        "
-                                                    >
-                                                        <option value="">Selecciona una consola</option>
-                                                        <option value="PS4">PlayStation 4 (PS4)</option>
-                                                        <option value="PS5">PlayStation 5 (PS5)</option>
-                                                    </select>
+                                            <div
+                                                class="
+                                                    pointer-events-none
+                                                    absolute
+                                                    inset-y-0
+                                                    right-3
 
-                                                    <div
-                                                        class="
-                                                            pointer-events-none
-                                                            absolute
-                                                            inset-y-0
-                                                            right-3
+                                                    flex
+                                                    items-center
 
-                                                            flex
-                                                            items-center
-
-                                                            text-amber-500
-                                                        "
-                                                    >
-                                                        <i class="fa-solid fa-gamepad"></i>
-                                                    </div>
-                                                </div>
-
-                                                <InputError class="mt-2" :message="form.errors.consola" />
-                                            </div>
-
-                                            <div class="mb-2 w-8 flex justify-center">
-                                                <i
-                                                    v-if="verificandoInventario"
-                                                    class="fa-solid fa-spinner fa-spin text-gray-500 text-xl"
-                                                />
-
-                                                <span
-                                                    v-else-if="inventarioDisponible === true"
-                                                    class="text-green-600 text-2xl"
-                                                    title="Disponible en inventario"
-                                                >
-                                                    <i class="fa-solid fa-circle-check"></i>
-                                                </span>
-
-                                                <span
-                                                    v-else-if="inventarioDisponible === false"
-                                                    class="text-red-600 text-2xl"
-                                                    title="No disponible en inventario"
-                                                >
-                                                    <i class="fa-solid fa-circle-xmark"></i>
-                                                </span>
+                                                    text-amber-500
+                                                "
+                                            >
+                                                <i class="fa-solid fa-gamepad"></i>
                                             </div>
                                         </div>
+
+                                        <InputError class="mt-2" :message="form.errors.consola" />
                                     </div>
                                 </div>
                             </div>

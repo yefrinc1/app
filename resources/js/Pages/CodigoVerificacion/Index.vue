@@ -119,7 +119,7 @@ const closeModal = () => {
                         <div>
                             <InputLabel for="correo" :value="$t('Email')" />
 
-                            <div class="relative w-full">
+                            <div class="relative w-full z-50">
                                 <TextInput
                                     id="correo"
                                     ref="correo"
@@ -133,7 +133,7 @@ const closeModal = () => {
 
                                 <ul
                                     v-if="form.correo !== '' && sugerencias.length !== 0"
-                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md"
+                                    class="absolute z-50 bg-white border border-gray-300 w-full mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto"
                                 >
                                     <li
                                         v-for="correo in sugerencias"
@@ -145,16 +145,17 @@ const closeModal = () => {
                                     </li>
                                 </ul>
                             </div>
-                        
+
                             <InputError class="mt-2" :message="form.errors.correo" />
                         </div>
 
-                        <div class="flex items-center gap-4">
+                        <div class="relative z-0 flex items-center gap-4">
                             <PrimaryButton @click="abrirModalCodigos">
                                 {{ $t("Search") }}
                             </PrimaryButton>
                         </div>
                     </div>
+
                 </section>
             </div>
 

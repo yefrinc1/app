@@ -99,7 +99,7 @@ onMounted(() => {
                         ></i>
 
                         <i
-                            v-else-if="juegoValido === false && model.trim() !== ''"
+                            v-else-if="juegoValido === false && model.trim() !== '' && juegoSeleccionado"
                             class="fa-solid fa-circle-xmark text-red-500"
                         ></i>
 

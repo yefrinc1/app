@@ -9,6 +9,11 @@ use Inertia\Inertia;
 
 class CorreoPrincipalController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:correos.principales', ['only' => ['index', 'store', 'update', 'destroy']]);
+    }
+
     /**
      * Display a listing of the resource.
      */

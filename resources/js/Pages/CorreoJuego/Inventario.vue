@@ -1,8 +1,8 @@
 <script setup>
 import { defineProps } from "vue";
-import { Link, Head, useForm } from "@inertiajs/vue3";
+import { Link, Head, useForm, usePage } from "@inertiajs/vue3";
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
@@ -13,6 +13,16 @@ const props = defineProps({
     search: String,
     modelValue: String,
 });
+
+const page = usePage()
+
+const permissions = computed(() => {
+    return page.props.auth?.permissions ?? []
+})
+
+const puedeVerDatosCompletos = computed(() => {
+    return permissions.value.includes('inventario.datos.completos')
+})
 
 const form = useForm({});
 
@@ -121,7 +131,7 @@ const seleccionarJuego = async (nombreJuego) => {
                             <thead>
                                 <tr class="bg-gray-100 border-b">
                                     <th class="px-4 py-2 text-left">#</th>
-                                    <th class="px-4 py-2 text-left">Cuenta</th>
+                                    <th v-if="puedeVerDatosCompletos" class="px-4 py-2 text-left">Cuenta</th>
                                     <th class="px-4 py-2 text-left">Juego</th>
                                     <th class="px-4 py-2 text-left">Licencias</th>
                                 </tr>
@@ -134,7 +144,7 @@ const seleccionarJuego = async (nombreJuego) => {
                                             {{ i + 1 }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-2">
+                                    <td v-if="puedeVerDatosCompletos" class="px-4 py-2">
                                         <div class="bg-gray-50 rounded-lg p-2 min-w-[220px]">
                                             <div class="flex items-center gap-2 text-md">
                                                 <i class="fa-solid fa-envelope text-blue-500"></i>

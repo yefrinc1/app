@@ -1,6 +1,6 @@
 <script setup>
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import {
     Chart as ChartJS,
@@ -32,6 +32,12 @@ const props = defineProps({
     presupuesto_actual: Object,
     mensaje: String,
 });
+
+const page = usePage()
+
+const puedeVerTotales = page.props.auth.permissions.includes(
+    'dashboard.totales.ver'
+)
 
 const swalWithTailwind = Swal.mixin({
     buttonsStyling: true,
@@ -230,7 +236,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                 </div>
 
                 <!-- Resumen principal del mes -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div  v-if="puedeVerTotales" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
                         <div class="flex items-center justify-between">
                             <div>
@@ -343,7 +349,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                         <div class="bg-gray-50 rounded-lg p-4">
                             <p class="text-xs text-gray-500">Ventas</p>
                             <p class="text-xl font-bold">{{ formatoNumero(ventas_hoy.cantidad_ventas) }}</p>
-                            <p class="text-xs text-gray-500">
+                            <p v-if="puedeVerTotales" class="text-xs text-gray-500">
                                 Obj: {{ Number(presupuesto_actual?.ventas_objetivo_diario || 0) }}
                                 — {{ cumplimientoVentasHoy }}%
                             </p>
@@ -352,7 +358,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                         <div class="bg-gray-50 rounded-lg p-4">
                             <p class="text-xs text-gray-500">Ingresos</p>
                             <p class="text-xl font-bold">${{ formatoCop(ventas_hoy.ingresos) }}</p>
-                            <p class="text-xs text-gray-500">
+                            <p v-if="puedeVerTotales" class="text-xs text-gray-500">
                                 Obj: ${{ formatoCop(presupuesto_actual?.ingresos_objetivo_diario) }}
                                 — {{ cumplimientoIngresosHoy }}%
                             </p>
@@ -371,7 +377,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                             >
                                 ${{ formatoCop(ventas_hoy.diferencia) }}
                             </p>
-                            <p class="text-xs text-gray-500">
+                            <p v-if="puedeVerTotales" class="text-xs text-gray-500">
                                 Obj: ${{ formatoCop(presupuesto_actual?.utilidad_objetivo_diario) }}
                                 — {{ cumplimientoUtilidadHoy }}%
                             </p>
@@ -413,7 +419,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                 </div>
 
                 <!-- Mes detallado -->
-                <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+                <div v-if="puedeVerTotales" class="bg-white shadow rounded-xl p-5 border border-gray-100">
                     <h2 class="text-lg font-bold text-gray-900 mb-4">
                         Información de ventas MES
                     </h2>
@@ -457,7 +463,7 @@ const cumplimientoUtilidadHoy = calcularCumplimiento(
                 </div>
 
                 <!-- Totales -->
-                <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+                <div v-if="puedeVerTotales" class="bg-white shadow rounded-xl p-5 border border-gray-100">
                     <h2 class="text-lg font-bold text-gray-900 mb-4">
                         Información de ventas TOTALES
                     </h2>

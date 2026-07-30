@@ -11,6 +11,11 @@ use Inertia\Inertia;
 
 class CorreoMadreController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:correos.madre', ['only' => ['index', 'create', 'store', 'show', 'update', 'destroy']]);
+    }
+    
     /**
      * Display a listing of the resource.
      */

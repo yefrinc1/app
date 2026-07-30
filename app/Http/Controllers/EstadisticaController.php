@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CorreoJuego;
 use App\Models\ResumenMensual;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +9,11 @@ use Inertia\Inertia;
 
 class EstadisticaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:reportes.juegos', ['only' => ['estadisticaJuegos']]);
+        $this->middleware('can:reportes.mensual', ['only' => ['resumenMensual']]);
+    }
     public function estadisticaJuegos(Request $request)
     {
         $search = $request->get('search', '');

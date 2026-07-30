@@ -9,91 +9,96 @@ use Inertia\Inertia;
 
 class ProductosJumpsellerController extends Controller
 {
-public function index(JumpsellerApiService $jumpseller)
-{
-    $numeroProductosOferta = $jumpseller->getProductosOfertaCount();
-    $todosLosProductos = [];
+    public function __construct()
+    {
+        $this->middleware('can:integraciones.productos.ofertas', ['only' => ['index', 'quitarOferta', 'quitarTodasOfertas']]);
+        $this->middleware('can:integraciones.productos.sincronizar', ['only' => ['sincronizarProductos', 'sincronizarProductosUpdate']]);
+    }
+    public function index(JumpsellerApiService $jumpseller)
+    {
+        $numeroProductosOferta = $jumpseller->getProductosOfertaCount();
+        $todosLosProductos = [];
 
-    // Si hay productos, procesamos la paginación y el mapeo
-    if ($numeroProductosOferta['count'] > 0) {
-        $total = $numeroProductosOferta['count'];
-        $porPagina = 100;
-        $paginas = (int) ceil($total / $porPagina);
+        // Si hay productos, procesamos la paginación y el mapeo
+        if ($numeroProductosOferta['count'] > 0) {
+            $total = $numeroProductosOferta['count'];
+            $porPagina = 100;
+            $paginas = (int) ceil($total / $porPagina);
 
-        // Cargamos los IDs de configuración una sola vez
-        $config = [
-            'idCuenta' => env('JUMPSELLER_CUENTA_OPTION_ID'),
-            'idPrimaria' => env('JUMPSELLER_PRIMARIA_OPTION_VALUE_ID'),
-            'idSecundaria' => env('JUMPSELLER_SECUNDARIA_OPTION_VALUE_ID'),
-            'idConsola' => env('JUMPSELLER_CONSOLA_OPTION_ID'),
-            'idPs4' => env('JUMPSELLER_PS4_OPTION_VALUE_ID'),
-            'idPs5' => env('JUMPSELLER_PS5_OPTION_VALUE_ID'),
-        ];
+            // Cargamos los IDs de configuración una sola vez
+            $config = [
+                'idCuenta' => env('JUMPSELLER_CUENTA_OPTION_ID'),
+                'idPrimaria' => env('JUMPSELLER_PRIMARIA_OPTION_VALUE_ID'),
+                'idSecundaria' => env('JUMPSELLER_SECUNDARIA_OPTION_VALUE_ID'),
+                'idConsola' => env('JUMPSELLER_CONSOLA_OPTION_ID'),
+                'idPs4' => env('JUMPSELLER_PS4_OPTION_VALUE_ID'),
+                'idPs5' => env('JUMPSELLER_PS5_OPTION_VALUE_ID'),
+            ];
 
-        for ($i = 1; $i <= $paginas; $i++) {
-            $productos = $jumpseller->getProductosOferta($porPagina, $i);
-            
-            if (empty($productos)) continue;
+            for ($i = 1; $i <= $paginas; $i++) {
+                $productos = $jumpseller->getProductosOferta($porPagina, $i);
+                
+                if (empty($productos)) continue;
 
-            foreach ($productos as $producto) {
-                $todosLosProductos[] = $this->mapearProductoOferta($producto, $config);
+                foreach ($productos as $producto) {
+                    $todosLosProductos[] = $this->mapearProductoOferta($producto, $config);
+                }
             }
         }
+
+        // Siempre retornamos la vista de Inertia, incluso si el array está vacío
+        return Inertia::render('ProductosJumpseller/Ofertas', [
+            'productos' => $todosLosProductos,
+            'mensaje' => session('mensaje'),
+            'tipo' => session('tipo', 'success'),
+        ]);
     }
 
-    // Siempre retornamos la vista de Inertia, incluso si el array está vacío
-    return Inertia::render('ProductosJumpseller/Ofertas', [
-        'productos' => $todosLosProductos,
-        'mensaje' => session('mensaje'),
-        'tipo' => session('tipo', 'success'),
-    ]);
-}
+    /**
+     * Método auxiliar para limpiar la lógica de variantes del index
+     */
+    private function mapearProductoOferta($data, $config)
+    {
+        $producto = $data['product'];
+        $res = [
+            'id' => $producto['id'],
+            'nombre' => $producto['name'],
+            'imagen' => $producto['images'][0]['url'] ?? null,
+        ];
 
-/**
- * Método auxiliar para limpiar la lógica de variantes del index
- */
-private function mapearProductoOferta($data, $config)
-{
-    $producto = $data['product'];
-    $res = [
-        'id' => $producto['id'],
-        'nombre' => $producto['name'],
-        'imagen' => $producto['images'][0]['url'] ?? null,
-    ];
-
-    // Inicializar precios en null
-    foreach (['primaria_ps4', 'primaria_ps5', 'secundaria_ps4', 'secundaria_ps5'] as $key) {
-        $res["precio_{$key}"] = null;
-        $res["compare_{$key}"] = null;
-    }
-
-    foreach ($producto['variants'] as $variante) {
-        $cuenta = null;
-        $consola = null;
-
-        foreach ($variante['options'] as $opcion) {
-            if ($opcion['product_option_id'] == $config['idCuenta']) $cuenta = $opcion['product_option_value_id'];
-            if ($opcion['product_option_id'] == $config['idConsola']) $consola = $opcion['product_option_value_id'];
+        // Inicializar precios en null
+        foreach (['primaria_ps4', 'primaria_ps5', 'secundaria_ps4', 'secundaria_ps5'] as $key) {
+            $res["precio_{$key}"] = null;
+            $res["compare_{$key}"] = null;
         }
 
-        // Mapeo dinámico de precios según cuenta y consola
-        if ($cuenta == $config['idPrimaria'] && $consola == $config['idPs4']) {
-            $res['precio_primaria_ps4'] = $variante['price'];
-            $res['compare_primaria_ps4'] = $variante['compare_at_price'];
-        } elseif ($cuenta == $config['idPrimaria'] && $consola == $config['idPs5']) {
-            $res['precio_primaria_ps5'] = $variante['price'];
-            $res['compare_primaria_ps5'] = $variante['compare_at_price'];
-        } elseif ($cuenta == $config['idSecundaria'] && $consola == $config['idPs4']) {
-            $res['precio_secundaria_ps4'] = $variante['price'];
-            $res['compare_secundaria_ps4'] = $variante['compare_at_price'];
-        } elseif ($cuenta == $config['idSecundaria'] && $consola == $config['idPs5']) {
-            $res['precio_secundaria_ps5'] = $variante['price'];
-            $res['compare_secundaria_ps5'] = $variante['compare_at_price'];
-        }
-    }
+        foreach ($producto['variants'] as $variante) {
+            $cuenta = null;
+            $consola = null;
 
-    return $res;
-}
+            foreach ($variante['options'] as $opcion) {
+                if ($opcion['product_option_id'] == $config['idCuenta']) $cuenta = $opcion['product_option_value_id'];
+                if ($opcion['product_option_id'] == $config['idConsola']) $consola = $opcion['product_option_value_id'];
+            }
+
+            // Mapeo dinámico de precios según cuenta y consola
+            if ($cuenta == $config['idPrimaria'] && $consola == $config['idPs4']) {
+                $res['precio_primaria_ps4'] = $variante['price'];
+                $res['compare_primaria_ps4'] = $variante['compare_at_price'];
+            } elseif ($cuenta == $config['idPrimaria'] && $consola == $config['idPs5']) {
+                $res['precio_primaria_ps5'] = $variante['price'];
+                $res['compare_primaria_ps5'] = $variante['compare_at_price'];
+            } elseif ($cuenta == $config['idSecundaria'] && $consola == $config['idPs4']) {
+                $res['precio_secundaria_ps4'] = $variante['price'];
+                $res['compare_secundaria_ps4'] = $variante['compare_at_price'];
+            } elseif ($cuenta == $config['idSecundaria'] && $consola == $config['idPs5']) {
+                $res['precio_secundaria_ps5'] = $variante['price'];
+                $res['compare_secundaria_ps5'] = $variante['compare_at_price'];
+            }
+        }
+
+        return $res;
+    }
 
     public function quitarOferta($id, JumpsellerApiService $jumpseller)
     {

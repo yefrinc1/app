@@ -11,6 +11,12 @@ use Carbon\Carbon;
 
 class CierreCajaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:finanzas.cerrar.caja', ['only' => ['create', 'store', 'destroy']]);
+        $this->middleware('can:finanzas.cerrar.caja.ver', ['only' => ['index']]);
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search', '');

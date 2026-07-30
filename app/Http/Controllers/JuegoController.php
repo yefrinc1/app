@@ -8,6 +8,10 @@ use Inertia\Inertia;
 
 class JuegoController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:inventario.titulos')->only(['index', 'store', 'update', 'destroy']);
+    }
     public function index(Request $request)
     {
         $search = $request->get('search', '');

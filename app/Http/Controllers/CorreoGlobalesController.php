@@ -8,6 +8,11 @@ use Inertia\Inertia;
 
 class CorreoGlobalesController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:correos.globales', ['only' => ['index', 'store', 'destroy']]);
+    }
+
     public function index(Request $request)
     {
         // Obtén el término de búsqueda
