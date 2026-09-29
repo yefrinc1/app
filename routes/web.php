@@ -72,6 +72,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/productos-oferta-jumpseller/quitar-todas', [ProductosJumpsellerController::class, 'quitarTodasOfertas'])->name('productos-oferta-jumpseller.quitar-todas');
     Route::get('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductos'])->name('productos-sincronizar');
     Route::patch('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductosUpdate'])->name('productos-sincronizar.update');
+
+    require __DIR__.'/pedidos.php';
 });
 
 Route::get('/cierre-caja-automatico', [CierreCajaController::class, 'cierreCajaAutomatico'])->name('cierre-caja-automatico');

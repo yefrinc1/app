@@ -51,33 +51,33 @@ const can = (permission) => {
 */
 
 const menuSections = computed(() => [
-    // {
-    //     label: 'Pedidos',
-    //     icon: '📦',
-    //     items: [
-    //         {
-    //             label: 'Todos los pedidos',
-    //             icon: '📋',
-    //             route: 'pedidos.index',
-    //             active: 'pedidos.index',
-    //             permission: 'pedidos.ver',
-    //         },
-    //         {
-    //             label: 'Crear pedido',
-    //             icon: '➕',
-    //             route: 'pedidos.create',
-    //             active: 'pedidos.create',
-    //             permission: 'pedidos.crear',
-    //         },
-    //         {
-    //             label: 'Verificar pagos',
-    //             icon: '💳',
-    //             route: 'comprobantes.pendientes',
-    //             active: 'comprobantes.*',
-    //             permission: 'pagos.revisar',
-    //         },
-    //     ],
-    // },
+    {
+        label: 'Pedidos',
+        icon: '📦',
+        items: [
+            {
+                label: 'Todos los pedidos',
+                icon: '📋',
+                route: 'pedidos.index',
+                active: 'pedidos.index',
+                permission: 'pedidos.ver',
+            },
+            {
+                label: 'Crear pedido',
+                icon: '➕',
+                route: 'pedidos.create',
+                active: 'pedidos.create',
+                permission: 'pedidos.crear',
+            },
+            {
+                label: 'Verificar pagos',
+                icon: '💳',
+                route: 'pedidos.pagos.pendientes',
+                active: 'pedidos.pagos.*',
+                permission: 'pagos.revisar',
+            },
+        ],
+    },
 
     {
         label: 'Ventas',
