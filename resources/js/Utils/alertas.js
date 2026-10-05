@@ -99,24 +99,149 @@ export const mostrarRespuesta = (page, mensajeExito = 'Operación completada cor
     return mostrarExito('Listo', mensaje);
 };
 
-export const verComprobante = (url, titulo = 'Comprobante') => Swal.fire({
-    title: titulo,
-    html: '<div id="swal-visor-comprobante" style="height:70vh"></div>',
-    width: 'min(1100px, 96vw)',
-    showCloseButton: true,
-    showConfirmButton: false,
-    didOpen: () => {
-        const contenedor = document.getElementById('swal-visor-comprobante');
-        const visor = document.createElement('iframe');
-        visor.src = url;
-        visor.title = titulo;
-        visor.style.width = '100%';
-        visor.style.height = '100%';
-        visor.style.border = '0';
-        visor.style.borderRadius = '12px';
-        contenedor?.appendChild(visor);
-    },
-});
+export const verComprobante = (url, titulo = 'Comprobante') => {
+    let objectUrl = null;
+    let cerrado = false;
+    const controlador = new AbortController();
+
+    return Swal.fire({
+        title: titulo,
+        html: '<div id="swal-visor-comprobante"><div style="padding:2rem;color:#6b7280">Cargando comprobante…</div></div>',
+        width: 'min(1100px, calc(100vw - 16px))',
+        showCloseButton: true,
+        showConfirmButton: false,
+        didOpen: async () => {
+            const contenedor = document.getElementById('swal-visor-comprobante');
+            const popup = Swal.getPopup();
+            const contenido = Swal.getHtmlContainer();
+            const esCelular = window.matchMedia('(max-width: 640px)').matches;
+            const altoCelular = window.CSS?.supports?.('height', '100dvh')
+                ? 'calc(100dvh - 150px)'
+                : 'calc(100vh - 150px)';
+
+            if (!contenedor) return;
+
+            if (popup) {
+                popup.style.maxWidth = '1100px';
+                popup.style.padding = esCelular ? '0.75rem' : '1.25rem';
+                popup.style.overflow = 'hidden';
+            }
+            if (contenido) {
+                contenido.style.margin = esCelular ? '0.5rem 0 0' : '1rem 0 0';
+                contenido.style.overflow = 'hidden';
+            }
+
+            Object.assign(contenedor.style, {
+                width: '100%',
+                height: esCelular ? altoCelular : '70vh',
+                minHeight: esCelular ? '260px' : '420px',
+                maxHeight: esCelular ? altoCelular : '820px',
+                overflow: 'auto',
+                borderRadius: '12px',
+                background: '#f3f4f6',
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x pan-y pinch-zoom',
+            });
+
+            try {
+                const respuesta = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'image/*,application/pdf' },
+                    signal: controlador.signal,
+                });
+                if (!respuesta.ok) throw new Error('No fue posible cargar el comprobante.');
+
+                const archivo = await respuesta.blob();
+                if (cerrado) return;
+                const tipo = (archivo.type || respuesta.headers.get('content-type') || '').toLowerCase();
+                objectUrl = URL.createObjectURL(archivo);
+
+                // Las rutas solo entregan imagenes o PDF. Algunos hosting
+                // responden JPG/PNG como application/octet-stream, por eso
+                // cualquier archivo que no sea PDF se intenta como imagen.
+                if (!tipo.includes('pdf')) {
+                    const imagen = document.createElement('img');
+                    imagen.src = objectUrl;
+                    imagen.alt = titulo;
+                    imagen.style.display = 'block';
+                    imagen.style.height = 'auto';
+                    imagen.style.margin = '0 auto';
+                    imagen.style.objectFit = 'contain';
+                    imagen.style.background = '#ffffff';
+
+                    if (esCelular) {
+                        // En celular la captura ocupa el ancho disponible y se
+                        // recorre verticalmente para poder leerla completa.
+                        imagen.style.width = '100%';
+                        imagen.style.maxWidth = '100%';
+                    } else {
+                        // En computador una captura vertical se ajusta primero
+                        // al alto del visor. No se fuerza al ancho completo ni
+                        // se amplia por encima de su resolucion natural.
+                        contenedor.style.display = 'flex';
+                        contenedor.style.alignItems = 'center';
+                        contenedor.style.justifyContent = 'center';
+                        imagen.style.width = 'auto';
+                        imagen.style.maxWidth = '100%';
+                        imagen.style.maxHeight = '100%';
+                        imagen.style.flexShrink = '0';
+                        imagen.style.cursor = 'zoom-in';
+                        imagen.title = 'Haz clic para ampliar la imagen';
+
+                        let ampliada = false;
+                        imagen.addEventListener('click', () => {
+                            ampliada = !ampliada;
+
+                            if (ampliada) {
+                                contenedor.style.alignItems = 'flex-start';
+                                contenedor.style.justifyContent = 'flex-start';
+                                imagen.style.maxWidth = 'none';
+                                imagen.style.maxHeight = 'none';
+                                imagen.style.cursor = 'zoom-out';
+                                imagen.title = 'Haz clic para volver a ajustar';
+                            } else {
+                                contenedor.style.alignItems = 'center';
+                                contenedor.style.justifyContent = 'center';
+                                imagen.style.maxWidth = '100%';
+                                imagen.style.maxHeight = '100%';
+                                imagen.style.cursor = 'zoom-in';
+                                imagen.title = 'Haz clic para ampliar la imagen';
+                                contenedor.scrollTo({ top: 0, left: 0 });
+                            }
+                        });
+                    }
+
+                    contenedor.replaceChildren(imagen);
+                    return;
+                }
+
+                const visor = document.createElement('iframe');
+                visor.src = objectUrl;
+                visor.title = titulo;
+                visor.style.width = '100%';
+                visor.style.height = '100%';
+                visor.style.border = '0';
+                visor.style.borderRadius = '12px';
+                visor.style.background = '#ffffff';
+                contenedor.replaceChildren(visor);
+            } catch (error) {
+                if (cerrado || error?.name === 'AbortError') return;
+                const mensaje = document.createElement('div');
+                mensaje.style.padding = '2rem 1rem';
+                mensaje.style.color = '#b91c1c';
+                mensaje.style.fontWeight = '600';
+                mensaje.textContent = error?.message || 'No fue posible visualizar el comprobante.';
+                contenedor.replaceChildren(mensaje);
+            }
+        },
+        willClose: () => {
+            cerrado = true;
+            controlador.abort();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        },
+    });
+};
 
 export const seleccionarJuegoReembolso = async (opciones) => {
     const disponibles = opciones.filter((opcion) => Number(opcion.disponible) > 0);

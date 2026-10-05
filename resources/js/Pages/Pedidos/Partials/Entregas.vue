@@ -150,6 +150,7 @@ const copiar = async (detalle, entrega) => {
                 <PrimaryButton
                     v-if="puedeCompletar"
                     type="button"
+                    class="bg-green-600 hover:bg-green-700 focus:bg-green-700 active:bg-green-800"
                     @click="completar"
                 >
                     <i class="fa-solid fa-circle-check mr-2"></i>Completar pedido
@@ -225,6 +226,7 @@ const copiar = async (detalle, entrega) => {
                             <PrimaryButton
                                 v-if="entrega.estado === 'asignada' && can('pedidos.entregar')"
                                 type="button"
+                                class="bg-green-600 hover:bg-green-700 focus:bg-green-700 active:bg-green-800"
                                 @click="confirmarEntrega(entrega)"
                             >
                                 <i class="fa-solid fa-check mr-2"></i>Confirmar entrega
