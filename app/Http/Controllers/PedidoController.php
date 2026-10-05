@@ -70,11 +70,12 @@ class PedidoController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         return Inertia::render('Pedidos/Create', [
             'canales' => ['manual', 'instagram', 'whatsapp', 'jumpseller', 'otro'],
             'metodosPago' => ['Bancolombia', 'Nequi', 'Mercado Pago', 'Jumpseller', 'Efectivo', 'Otro'],
+            'puedeEditarClientes' => $request->user()->can('clientes.editar'),
         ]);
     }
 

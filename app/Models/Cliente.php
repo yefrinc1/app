@@ -45,4 +45,31 @@ class Cliente extends Model
             }
         });
     }
+
+    public function scopeDatosIncompletos($query)
+    {
+        return $query->where(function ($grupo) {
+            $grupo->where(function ($consulta) {
+                $consulta->whereNull('nombre')->orWhere('nombre', '');
+            })->orWhere(function ($consulta) {
+                $consulta->where(function ($q) {
+                    $q->whereNull('email')->orWhere('email', '');
+                })->where(function ($q) {
+                    $q->whereNull('usuario')->orWhere('usuario', '');
+                });
+            });
+        });
+    }
+
+    public function scopeDatosCompletos($query)
+    {
+        return $query->whereNotNull('nombre')->where('nombre', '!=', '')
+            ->where(function ($consulta) {
+                $consulta->where(function ($q) {
+                    $q->whereNotNull('email')->where('email', '!=', '');
+                })->orWhere(function ($q) {
+                    $q->whereNotNull('usuario')->where('usuario', '!=', '');
+                });
+            });
+    }
 }

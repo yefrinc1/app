@@ -15,13 +15,15 @@ import FileInput from './Components/FileInput.vue';
 import FormSelect from './Components/FormSelect.vue';
 import FormTextarea from './Components/FormTextarea.vue';
 import SectionCard from './Components/SectionCard.vue';
+import ClienteFormModal from '@/Pages/Clientes/Components/ClienteFormModal.vue';
 
-defineProps({ canales: Array, metodosPago: Array });
+const props = defineProps({ canales: Array, metodosPago: Array, puedeEditarClientes: Boolean });
 const modoCliente = ref('existente');
 const busquedaCliente = ref('');
 const clientes = ref([]);
 const buscando = ref(false);
 const clienteSeleccionado = ref(null);
+const editandoCliente = ref(false);
 let temporizador;
 const detalleVacio = () => ({ juego: '', tipo_cuenta: '', consola: '', cantidad: 1, precio_unitario: '', descuento: 0, observaciones: '' });
 const fechaHoraLocal = () => { const fecha = new Date(); fecha.setMinutes(fecha.getMinutes() - fecha.getTimezoneOffset()); return fecha.toISOString().slice(0, 16); };
@@ -44,6 +46,8 @@ watch(modoCliente, (modo) => {
     else { form.cliente_id = null; clienteSeleccionado.value = null; }
 });
 const seleccionarCliente = (cliente) => { form.cliente_id = cliente.id; clienteSeleccionado.value = cliente; busquedaCliente.value = ''; clientes.value = []; };
+const clienteIncompleto = computed(() => clienteSeleccionado.value && (!clienteSeleccionado.value.nombre || (!clienteSeleccionado.value.email && !clienteSeleccionado.value.usuario)));
+const clienteActualizado = (cliente) => { clienteSeleccionado.value = { ...clienteSeleccionado.value, ...cliente }; };
 const subtotalDetalles = computed(() => form.detalles.reduce((total, item) => total + Math.max(0, (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)) - Number(item.descuento || 0)), 0));
 const total = computed(() => Math.max(0, subtotalDetalles.value - Number(form.descuento || 0)));
 const pagosRegistrados = computed(() => form.pagos.reduce((suma, pago) => suma + Number(pago.valor_bruto || 0), 0));
@@ -89,9 +93,11 @@ const guardar = async () => {
                         </div>
                     </template>
                     <div v-if="modoCliente === 'existente'">
-                        <div v-if="clienteSeleccionado" class="flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div><p class="font-bold text-green-900"><i class="fa-solid fa-circle-check mr-2"></i>{{ clienteSeleccionado.nombre || clienteSeleccionado.usuario || clienteSeleccionado.telefono }}</p><p class="mt-1 text-sm text-green-700">{{ clienteSeleccionado.telefono }} · {{ clienteSeleccionado.email || clienteSeleccionado.usuario }}</p></div>
-                            <SecondaryButton type="button" @click="form.cliente_id = null; clienteSeleccionado = null">Cambiar cliente</SecondaryButton>
+                        <div v-if="clienteSeleccionado" class="rounded-xl border border-green-200 bg-green-50 p-4">
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><p class="font-bold text-green-900"><i class="fa-solid fa-circle-check mr-2"></i>{{ clienteSeleccionado.nombre || clienteSeleccionado.usuario || clienteSeleccionado.telefono }}</p><span v-if="clienteIncompleto" class="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Datos incompletos</span></div><div class="mt-2 grid gap-1 text-sm text-green-800 sm:grid-cols-2"><p><i class="fa-solid fa-phone mr-2"></i>{{ clienteSeleccionado.telefono ? `+${clienteSeleccionado.codigo_pais || ''} ${clienteSeleccionado.telefono}` : 'Sin teléfono' }}</p><p><i class="fa-brands fa-instagram mr-2"></i>{{ clienteSeleccionado.usuario ? `@${clienteSeleccionado.usuario}` : 'Sin Instagram' }}</p><p><i class="fa-solid fa-envelope mr-2"></i>{{ clienteSeleccionado.email || 'Sin correo' }}</p></div></div>
+                                <div class="flex shrink-0 flex-col gap-2 sm:flex-row"><PrimaryButton v-if="props.puedeEditarClientes" type="button" class="w-full justify-center sm:w-auto" @click="editandoCliente = true"><i class="fa-solid fa-user-pen mr-2"></i>Editar datos</PrimaryButton><SecondaryButton type="button" class="w-full justify-center sm:w-auto" @click="form.cliente_id = null; clienteSeleccionado = null">Cambiar cliente</SecondaryButton></div>
+                            </div>
                         </div>
                         <div v-else class="relative">
                             <InputLabel for="buscar-cliente" value="Buscar cliente" />
@@ -164,6 +170,7 @@ const guardar = async () => {
                     </aside>
                 </div>
             </form>
+            <ClienteFormModal :show="editandoCliente" :cliente="clienteSeleccionado" @close="editandoCliente = false" @updated="clienteActualizado" />
         </template>
     </LayoutPageHeader>
 </template>

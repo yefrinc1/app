@@ -30,6 +30,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'reembolsos.crear',
             'reembolsos.revisar',
 
+            // Clientes
+            'clientes.ver',
+            'clientes.editar',
+
             // Ventas
             'ventas.ver',
             'ventas.crear',
@@ -81,6 +85,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'pagos.subir',
             'pedidos.entregar',
             'reembolsos.crear',
+
+            // Clientes
+            'clientes.ver',
+            'clientes.editar',
 
             // Ventas
             'ventas.ver',

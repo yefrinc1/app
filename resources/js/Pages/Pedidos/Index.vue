@@ -39,7 +39,7 @@ const color = (estado) => ({
         <template #titulo-pagina>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">📦 Pedidos</h2>
-                <Link :href="route('pedidos.create')"><PrimaryButton type="button" class="w-full justify-center sm:w-auto"><i class="fa-solid fa-plus mr-2"></i>Nuevo pedido</PrimaryButton></Link>
+                <div class="flex flex-col gap-2 sm:flex-row"><Link :href="route('clientes.index')"><SecondaryButton type="button" class="w-full justify-center sm:w-auto"><i class="fa-solid fa-users mr-2"></i>Clientes</SecondaryButton></Link><Link :href="route('pedidos.create')"><PrimaryButton type="button" class="w-full justify-center sm:w-auto"><i class="fa-solid fa-plus mr-2"></i>Nuevo pedido</PrimaryButton></Link></div>
             </div>
         </template>
 

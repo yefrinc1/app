@@ -76,6 +76,13 @@ const menuSections = computed(() => [
                 active: 'pedidos.pagos.*',
                 permission: 'pagos.revisar',
             },
+            {
+                label: 'Clientes',
+                icon: '👥',
+                route: 'clientes.index',
+                active: 'clientes.*',
+                permission: 'clientes.ver',
+            },
         ],
     },
 

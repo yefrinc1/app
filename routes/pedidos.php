@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/clientes/buscar', [ClientePedidoController::class, 'buscar'])->name('clientes.buscar');
 Route::post('/clientes/rapido', [ClientePedidoController::class, 'store'])->name('clientes.rapido.store');
+Route::get('/clientes', [ClientePedidoController::class, 'index'])->name('clientes.index');
+Route::get('/clientes/{cliente}', [ClientePedidoController::class, 'show'])->name('clientes.show');
+Route::patch('/clientes/{cliente}', [ClientePedidoController::class, 'update'])->name('clientes.update');
 
 Route::get('/pedidos/pagos/pendientes', [PedidoPagoController::class, 'pendientes'])->name('pedidos.pagos.pendientes');
 Route::get('/pedidos/pagos/{pago}/comprobante', [PedidoPagoController::class, 'comprobante'])->name('pedidos.pagos.comprobante');
