@@ -176,7 +176,7 @@ class PedidoController extends Controller
     {
         $usuario = request()->user();
         $relaciones = [
-            'cliente', 'creador:id,name',
+            'cliente.cuentaPortal:id,name,email', 'creador:id,name',
             'detalles.entregas.resolucion.reemplazoDetalle',
             'detalles.entregas.reembolsoResolucion',
             'detalles.entregas.anulacion',
@@ -206,6 +206,7 @@ class PedidoController extends Controller
             'pedidos.anular',
             'reembolsos.crear',
             'reembolsos.revisar',
+            'clientes.editar',
         ];
 
         $permisos = collect($permisosModulo)
@@ -216,6 +217,10 @@ class PedidoController extends Controller
         return Inertia::render('Pedidos/Show', [
             'pedido' => $pedido,
             'permissions' => $permisos,
+            'portalCliente' => [
+                'activo' => (bool) $pedido->cliente?->user_id,
+                'email_acceso' => $pedido->cliente?->cuentaPortal?->email,
+            ],
         ]);
     }
 

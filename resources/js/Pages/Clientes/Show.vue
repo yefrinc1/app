@@ -4,11 +4,16 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import Pagination from '@/Pages/Pedidos/Components/Pagination.vue';
 import SectionCard from '@/Pages/Pedidos/Components/SectionCard.vue';
 import ClienteFormModal from './Components/ClienteFormModal.vue';
+import { confirmarOperacion, mostrarCarga, mostrarErrores } from '@/Utils/alertas';
+import { copiarTexto } from '@/Utils/portapapeles';
 
-const props = defineProps({ cliente: Object, pedidos: Object, resumen: Object, puedeEditar: Boolean });
+const props = defineProps({ cliente: Object, pedidos: Object, resumen: Object, puedeEditar: Boolean, portal: Object });
 const editando = ref(false);
 const clienteVisible = ref({ ...props.cliente });
 const dinero = (valor, moneda = 'COP') => new Intl.NumberFormat('es-CO', { style: 'currency', currency: moneda, maximumFractionDigits: 0 }).format(Number(valor || 0));
@@ -16,6 +21,44 @@ const fechaHora = (valor) => new Date(valor).toLocaleString('es-CO', { dateStyle
 const etiqueta = (estado) => String(estado || '').replaceAll('_', ' ');
 const color = (estado) => ({ pagado: 'bg-green-100 text-green-800', completado: 'bg-green-100 text-green-800', parcial: 'bg-amber-100 text-amber-800', en_proceso: 'bg-blue-100 text-blue-800', cancelado: 'bg-red-100 text-red-800', pendiente: 'bg-gray-100 text-gray-800', reembolsado: 'bg-purple-100 text-purple-800', reembolso_parcial: 'bg-orange-100 text-orange-800', pago_parcial: 'bg-amber-100 text-amber-800' }[estado] ?? 'bg-gray-100 text-gray-800');
 const clienteActualizado = (cliente) => { clienteVisible.value = { ...clienteVisible.value, ...cliente }; };
+const generandoAcceso = ref(false);
+const generarAcceso = async () => {
+    const confirmado = await confirmarOperacion({ titulo: '¿Generar acceso al portal?', texto: 'Se creará un enlace privado de un solo uso para este cliente. También se intentarán vincular sus ventas antiguas.', confirmButtonText: 'Sí, generar enlace' });
+    if (!confirmado) return;
+    generandoAcceso.value = true;
+    mostrarCarga('Generando acceso…', 'Vinculando compras y creando el enlace seguro.');
+    try {
+        const { data } = await axios.post(route('clientes.portal-acceso.generar', clienteVisible.value.id));
+        const resultado = await Swal.fire({
+            title: 'Enlace listo',
+            html: '<p style="margin-bottom:12px;color:#4b5563">Envíalo al cliente por WhatsApp. Solo puede utilizarse una vez y vence en 7 días.</p>',
+            input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' },
+            icon: 'success', confirmButtonText: 'Copiar enlace', confirmButtonColor: '#16a34a',
+            showCancelButton: true, cancelButtonText: 'Cerrar', reverseButtons: true,
+        });
+        if (resultado.isConfirmed) {
+            try {
+                await copiarTexto(data.url);
+                await Swal.fire({ title: 'Enlace copiado', icon: 'success', timer: 1400, showConfirmButton: false });
+            } catch (_) {
+                await Swal.fire({ title: 'Enlace generado', text: 'El navegador no permitió copiarlo automáticamente. Selecciónalo y cópialo manualmente.', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'warning', confirmButtonText: 'Cerrar' });
+            }
+        }
+    } catch (error) {
+        await mostrarErrores(error.response?.data?.errors ?? { cliente: error.response?.data?.message }, 'No se pudo generar el acceso');
+    } finally {
+        generandoAcceso.value = false;
+    }
+};
+const copiarIngreso = async () => {
+    const url = window.location.origin + route('login', {}, false);
+    try {
+        await copiarTexto(url);
+        await Swal.fire({ title: 'Enlace de ingreso copiado', text: 'Ya puedes enviarlo al cliente.', icon: 'success', timer: 1700, showConfirmButton: false });
+    } catch (_) {
+        await Swal.fire({ title: 'Copia el enlace de ingreso', input: 'text', inputValue: url, inputAttributes: { readonly: 'readonly' }, icon: 'info', confirmButtonText: 'Cerrar' });
+    }
+};
 </script>
 
 <template>
@@ -42,6 +85,14 @@ const clienteActualizado = (cliente) => { clienteVisible.value = { ...clienteVis
                         <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold uppercase text-gray-500">Instagram</p><p class="mt-2 font-semibold text-gray-900">{{ clienteVisible.usuario ? `@${clienteVisible.usuario}` : 'Sin registrar' }}</p></div>
                         <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold uppercase text-gray-500">Correo</p><p class="mt-2 break-all font-semibold text-gray-900">{{ clienteVisible.email || 'Sin registrar' }}</p></div>
                         <div class="rounded-xl bg-gray-50 p-4 md:col-span-2 xl:col-span-4"><p class="text-xs font-bold uppercase text-gray-500">Notas</p><p class="mt-2 whitespace-pre-line text-gray-800">{{ clienteVisible.notas || 'Sin notas' }}</p></div>
+                    </div>
+                </SectionCard>
+
+                <SectionCard title="Portal del cliente" description="Genera el acceso que enviarás en lugar de compartir las credenciales por WhatsApp." icon="fa-solid fa-shield-halved text-purple-500">
+                    <div class="flex flex-col gap-5 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between" :class="portal.activo ? 'border-green-200 bg-green-50' : 'border-purple-200 bg-purple-50'">
+                        <div><p class="font-black" :class="portal.activo ? 'text-green-900' : 'text-purple-900'"><i class="mr-2" :class="portal.activo ? 'fa-solid fa-circle-check' : 'fa-solid fa-link'"></i>{{ portal.activo ? 'Cuenta activa' : 'Acceso sin activar' }}</p><p class="mt-1 text-sm" :class="portal.activo ? 'text-green-700' : 'text-purple-700'">{{ portal.activo ? `El cliente inicia sesión con ${portal.email_acceso}.` : 'Genera un enlace privado para que el cliente cree su contraseña.' }}</p><p class="mt-2 text-xs text-gray-500">Compras históricas vinculadas: {{ portal.ventas_historicas }}</p></div>
+                        <PrimaryButton v-if="puedeEditar && !portal.activo" type="button" class="w-full justify-center sm:w-auto" :disabled="generandoAcceso" @click="generarAcceso"><i class="fa-solid fa-paper-plane mr-2"></i>{{ generandoAcceso ? 'Generando…' : 'Generar enlace' }}</PrimaryButton>
+                        <PrimaryButton v-else-if="portal.activo" type="button" class="w-full justify-center sm:w-auto" @click="copiarIngreso"><i class="fa-solid fa-copy mr-2"></i>Copiar enlace de ingreso</PrimaryButton>
                     </div>
                 </SectionCard>
 

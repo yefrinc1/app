@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientePedidoController;
+use App\Http\Controllers\ClientePortalAccesoController;
 use App\Http\Controllers\PagoLiquidacionController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PedidoAnulacionController;
@@ -15,6 +16,7 @@ Route::post('/clientes/rapido', [ClientePedidoController::class, 'store'])->name
 Route::get('/clientes', [ClientePedidoController::class, 'index'])->name('clientes.index');
 Route::get('/clientes/{cliente}', [ClientePedidoController::class, 'show'])->name('clientes.show');
 Route::patch('/clientes/{cliente}', [ClientePedidoController::class, 'update'])->name('clientes.update');
+Route::post('/clientes/{cliente}/portal-acceso', [ClientePortalAccesoController::class, 'generar'])->name('clientes.portal-acceso.generar');
 
 Route::get('/pedidos/pagos/pendientes', [PedidoPagoController::class, 'pendientes'])->name('pedidos.pagos.pendientes');
 Route::get('/pedidos/pagos/{pago}/comprobante', [PedidoPagoController::class, 'comprobante'])->name('pedidos.pagos.comprobante');

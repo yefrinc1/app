@@ -7,88 +7,22 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-defineProps({
-    canResetPassword: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
-});
-
-const form = useForm({
-    email: '',
-    password: '',
-    remember: false,
-});
-
-const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
-    });
-};
+defineProps({ canResetPassword: Boolean, status: String });
+const form = useForm({ email: '', password: '', remember: false });
+const submit = () => form.post(route('login'), { onFinish: () => form.reset('password') });
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
-
-        <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
-            {{ status }}
-        </div>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" :value="$t('Email')" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" :value="$t('Password')" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="block mt-4">
-                <label class="flex items-center">
-                    <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600">{{ $t('Remember me') }}</span>
-                </label>
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <Link
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    {{ $t('Forgot your password?') }}
-                </Link>
-
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    {{ $t('Log in') }}
-                </PrimaryButton>
-            </div>
+        <Head title="Iniciar sesión" />
+        <div class="mb-6 text-center"><h1 class="text-2xl font-black text-gray-900">Bienvenido a MRJUEGOZ</h1><p class="mt-1 text-sm text-gray-500">Accede al panel o consulta tus juegos como cliente.</p></div>
+        <div v-if="status" class="mb-4 rounded-xl bg-green-50 p-3 text-sm font-medium text-green-700">{{ status }}</div>
+        <form class="space-y-4" @submit.prevent="submit">
+            <div><InputLabel for="email" value="Correo" /><TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full" required autofocus autocomplete="username" /><InputError class="mt-2" :message="form.errors.email" /></div>
+            <div><InputLabel for="password" value="Contraseña" /><TextInput id="password" v-model="form.password" type="password" class="mt-1 block w-full" required autocomplete="current-password" /><InputError class="mt-2" :message="form.errors.password" /></div>
+            <label class="flex items-center"><Checkbox v-model:checked="form.remember" name="remember" /><span class="ms-2 text-sm text-gray-600">Recordarme</span></label>
+            <PrimaryButton class="w-full justify-center py-3" :disabled="form.processing"><i class="fa-solid fa-right-to-bracket mr-2"></i>{{ form.processing ? 'Ingresando…' : 'Iniciar sesión' }}</PrimaryButton>
         </form>
+        <div class="mt-5 flex flex-col gap-3 text-center text-sm"><Link v-if="canResetPassword" :href="route('password.request')" class="font-semibold text-red-600 hover:underline">¿Olvidaste tu contraseña?</Link><p class="rounded-xl bg-gray-50 p-3 text-xs text-gray-500">Los clientes nuevos deben abrir el enlace privado enviado por MRJUEGOZ para activar su cuenta.</p></div>
     </GuestLayout>
 </template>

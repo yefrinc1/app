@@ -41,6 +41,11 @@ class PedidoDetalle extends Model
         return $this->hasMany(Ventas::class, 'pedido_detalle_id');
     }
 
+    public function juegoCatalogo()
+    {
+        return $this->belongsTo(Juego::class, 'juego', 'nombre');
+    }
+
     public function reembolsos()
     {
         return $this->hasMany(PedidoReembolso::class, 'pedido_detalle_id');

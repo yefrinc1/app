@@ -53,7 +53,7 @@ class ClientePedidoController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        $cliente->loadCount(['pedidos', 'ventas']);
+        $cliente->load('cuentaPortal:id,name,email')->loadCount(['pedidos', 'ventas']);
 
         return Inertia::render('Clientes/Show', [
             'cliente' => $cliente,
@@ -64,6 +64,12 @@ class ClientePedidoController extends Controller
                 'total_comprado' => (float) $cliente->pedidos()->whereNotIn('estado', ['cancelado', 'reembolsado'])->sum('total'),
             ],
             'puedeEditar' => $request->user()->can('clientes.editar'),
+            'portal' => [
+                'activo' => (bool) $cliente->user_id,
+                'activado_at' => $cliente->portal_activated_at?->toIso8601String(),
+                'email_acceso' => $cliente->cuentaPortal?->email,
+                'ventas_historicas' => $cliente->ventas()->whereNull('pedido_detalle_id')->count(),
+            ],
         ]);
     }
 

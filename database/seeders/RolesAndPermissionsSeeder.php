@@ -130,6 +130,13 @@ class RolesAndPermissionsSeeder extends Seeder
         $administrador->syncPermissions($permisosAdministrador);
         $asesor->syncPermissions($permisosAsesor);
 
+        $cliente = Role::firstOrCreate([
+            'name' => 'cliente',
+            'guard_name' => 'web',
+        ]);
+
+        $cliente->syncPermissions([]);
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

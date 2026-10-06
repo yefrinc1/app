@@ -11,18 +11,57 @@ import EntregasPedido from './Partials/Entregas.vue';
 import AnulacionesReembolsos from './Partials/AnulacionesReembolsos.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import {
     confirmarOperacion, mostrarAdvertencia, mostrarCarga, mostrarErrores, mostrarRespuesta,
     pedirTexto, verComprobante,
 } from '@/Utils/alertas';
 import FileInput from './Components/FileInput.vue';
 import FormSelect from './Components/FormSelect.vue';
+import { copiarTexto } from '@/Utils/portapapeles';
 
 const props = defineProps({
     pedido: { type: Object, required: true },
     permissions: { type: Array, default: () => [] },
+    portalCliente: { type: Object, default: () => ({ activo: false }) },
 });
 const can = (permiso) => props.permissions.includes(permiso);
+const generandoPortal = ref(false);
+const compartirPortal = async () => {
+    if (props.portalCliente.activo) {
+        const url = window.location.origin + route('login', {}, false);
+        try {
+            await copiarTexto(url);
+            await Swal.fire({ title: 'Enlace de ingreso copiado', text: `El cliente ingresa con ${props.portalCliente.email_acceso}.`, icon: 'success', timer: 1900, showConfirmButton: false });
+        } catch (_) {
+            await Swal.fire({ title: 'Copia el enlace de ingreso', text: `El cliente ingresa con ${props.portalCliente.email_acceso}.`, input: 'text', inputValue: url, inputAttributes: { readonly: 'readonly' }, icon: 'info', confirmButtonText: 'Cerrar' });
+        }
+        return;
+    }
+
+    const confirmado = await confirmarOperacion({ titulo: '¿Crear portal para este cliente?', texto: 'Se generará un enlace privado de activación y se vincularán sus compras anteriores.', confirmButtonText: 'Sí, generar enlace' });
+    if (!confirmado) return;
+    generandoPortal.value = true;
+    mostrarCarga('Preparando portal…', 'Creando un acceso seguro para el cliente.');
+    try {
+        const { data } = await axios.post(route('clientes.portal-acceso.generar', props.pedido.cliente_id));
+        const resultado = await Swal.fire({ title: 'Portal preparado', html: '<p style="margin-bottom:12px;color:#4b5563">Envía este enlace al cliente. Vence en 7 días y funciona una sola vez.</p>', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'success', showCancelButton: true, confirmButtonText: 'Copiar enlace', cancelButtonText: 'Cerrar', confirmButtonColor: '#16a34a', reverseButtons: true });
+        if (resultado.isConfirmed) {
+            try {
+                await copiarTexto(data.url);
+                await Swal.fire({ title: 'Enlace copiado', icon: 'success', timer: 1400, showConfirmButton: false });
+            } catch (_) {
+                await Swal.fire({ title: 'Enlace generado', text: 'El navegador no permitió copiarlo automáticamente. Selecciónalo y cópialo manualmente.', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'warning', confirmButtonText: 'Cerrar' });
+            }
+        }
+    } catch (error) {
+        await mostrarErrores(error.response?.data?.errors ?? { portal: error.response?.data?.message }, 'No se pudo preparar el portal');
+    } finally {
+        generandoPortal.value = false;
+    }
+};
 
 const fechaHoraLocal = () => {
     const fecha = new Date();
@@ -160,6 +199,11 @@ const etiquetaEstado = (estado) => ({
                     <div class="rounded-xl border border-green-100 bg-gradient-to-br from-white to-green-50 p-5 shadow"><p class="text-xs font-bold uppercase text-gray-500">Saldo pagado vigente</p><p class="mt-2 text-2xl font-black text-green-600">{{ dinero(pedido.total_pagado) }}</p><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(pedido.estado_pago)">{{ pedido.estado_pago }}</span></div>
                     <div class="rounded-xl border border-red-100 bg-gradient-to-br from-white to-red-50 p-5 shadow"><p class="text-xs font-bold uppercase text-gray-500">Saldo pendiente</p><p class="mt-2 text-2xl font-black text-red-600">{{ dinero(pedido.saldo_pendiente) }}</p><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(pedido.estado_entrega)">Entrega {{ pedido.estado_entrega }}</span></div>
                     <div class="rounded-xl border border-purple-100 bg-gradient-to-br from-white to-purple-50 p-5 shadow"><p class="text-xs font-bold uppercase text-gray-500">Estado financiero</p><p class="mt-2 text-xl font-black">{{ etiquetaEstado(pedido.estado_financiero) }}</p><p class="text-sm text-gray-500">Reembolsado: {{ dinero(pedido.total_reembolsado) }}</p><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(pedido.estado_financiero)">{{ etiquetaEstado(pedido.estado_financiero) }}</span></div>
+                </section>
+
+                <section class="flex flex-col gap-4 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 p-5 shadow sm:flex-row sm:items-center sm:justify-between">
+                    <div><p class="font-black text-purple-900"><i class="fa-solid fa-mobile-screen-button mr-2"></i>Entrega mediante el portal</p><p class="mt-1 text-sm text-purple-700">{{ portalCliente.activo ? `Cuenta activa: ${portalCliente.email_acceso}. Comparte el enlace de ingreso para que consulte sus juegos.` : 'Genera el enlace de activación y envíalo en lugar de copiar usuario y contraseña.' }}</p></div>
+                    <PrimaryButton v-if="can('clientes.editar')" type="button" class="w-full shrink-0 justify-center sm:w-auto" :disabled="generandoPortal" @click="compartirPortal"><i class="mr-2" :class="portalCliente.activo ? 'fa-solid fa-copy' : 'fa-solid fa-link'"></i>{{ generandoPortal ? 'Generando…' : (portalCliente.activo ? 'Copiar ingreso' : 'Generar acceso') }}</PrimaryButton>
                 </section>
 
                 <section class="bg-white p-4 shadow sm:rounded-lg sm:p-8">

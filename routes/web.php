@@ -6,8 +6,6 @@ use App\Http\Controllers\CodigoVerificacionController;
 use App\Http\Controllers\CorreoGlobalesController;
 use App\Http\Controllers\CorreoJuegoController;
 use App\Http\Controllers\CorreoMadreController;
-use App\Http\Controllers\PresupuestoController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CorreoPrincipalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstadisticaController;
@@ -15,28 +13,34 @@ use App\Http\Controllers\JuegoController;
 use App\Http\Controllers\MovimientosController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PortalClienteController;
+use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\ProductosJumpsellerController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VentasController;
+use App\Http\Middleware\EnsureClientePortal;
+use App\Http\Middleware\EnsurePanelAdministrativo;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
+Route::get('/', function (Request $request) {
+    if (! $request->user()) {
+        return redirect()->route('login');
+    }
 
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-})->middleware(['auth', 'verified']);
+    return redirect()->route($request->user()->hasRole('cliente') ? 'portal.index' : 'dashboard');
+});
 
-Route::get('/dashboard', [DashboardController::class, 'index'] )->middleware(['auth', 'verified'])->name('dashboard');
+Route::prefix('mi-cuenta')->middleware(['auth', EnsureClientePortal::class])->group(function () {
+    Route::get('/', [PortalClienteController::class, 'index'])->name('portal.index');
+    Route::get('/juegos/{origen}/{id}', [PortalClienteController::class, 'show'])
+        ->whereIn('origen', ['pedido', 'historica'])
+        ->whereNumber('id')
+        ->name('portal.juegos.show');
+});
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -64,7 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
-    Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->middleware('can:inventario.consultar')->name('consultar-inventario');;
+    Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->middleware('can:inventario.consultar')->name('consultar-inventario');
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');

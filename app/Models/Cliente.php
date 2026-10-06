@@ -12,8 +12,20 @@ class Cliente extends Model
     protected $table = 'clientes';
 
     protected $fillable = [
-        'nombre', 'codigo_pais', 'telefono', 'usuario', 'email', 'notas',
+        'nombre', 'codigo_pais', 'telefono', 'usuario', 'email', 'notas', 'user_id',
     ];
+
+    protected $hidden = ['portal_token_hash'];
+
+    protected $casts = [
+        'portal_token_expires_at' => 'datetime',
+        'portal_activated_at' => 'datetime',
+    ];
+
+    public function cuentaPortal()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function ventas()
     {
