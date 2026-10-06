@@ -29,6 +29,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'pedidos.anular',
             'reembolsos.crear',
             'reembolsos.revisar',
+            'garantias.revisar',
 
             // Clientes
             'clientes.ver',
@@ -85,6 +86,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'pagos.subir',
             'pedidos.entregar',
             'reembolsos.crear',
+            'garantias.revisar',
 
             // Clientes
             'clientes.ver',

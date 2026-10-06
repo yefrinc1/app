@@ -14,6 +14,7 @@ use App\Http\Controllers\MovimientosController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PortalClienteController;
+use App\Http\Controllers\PortalGarantiaController;
 use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\ProductosJumpsellerController;
 use App\Http\Controllers\ProfileController;
@@ -37,6 +38,14 @@ Route::prefix('mi-cuenta')->middleware(['auth', EnsureClientePortal::class])->gr
         ->whereIn('origen', ['pedido', 'historica'])
         ->whereNumber('id')
         ->name('portal.juegos.show');
+    Route::post('/juegos/{origen}/{id}/evidencias', [PortalGarantiaController::class, 'store'])
+        ->whereIn('origen', ['pedido', 'historica'])->whereNumber('id')
+        ->name('portal.garantias.store');
+    Route::post('/juegos/{origen}/{id}/accesos', [PortalGarantiaController::class, 'acceso'])
+        ->whereIn('origen', ['pedido', 'historica'])->whereNumber('id')
+        ->name('portal.juegos.accesos.store');
+    Route::get('/evidencias/{evidencia}/archivo', [PortalGarantiaController::class, 'archivo'])
+        ->name('portal.garantias.archivo');
 });
 
 Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function () {

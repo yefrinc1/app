@@ -60,4 +60,19 @@ class PedidoEntrega extends Model
         return $this->hasOne(PedidoReembolso::class, 'pedido_entrega_anulada_id')
             ->whereIn('estado', ['pendiente', 'aprobado']);
     }
+
+    public function evidenciasInstalacion()
+    {
+        return $this->hasMany(InstalacionEvidencia::class, 'pedido_entrega_id');
+    }
+
+    public function ultimaEvidenciaInstalacion()
+    {
+        return $this->hasOne(InstalacionEvidencia::class, 'pedido_entrega_id')->latestOfMany();
+    }
+
+    public function accesosPortal()
+    {
+        return $this->hasMany(PortalJuegoAcceso::class, 'pedido_entrega_id');
+    }
 }

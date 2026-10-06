@@ -77,6 +77,13 @@ const menuSections = computed(() => [
                 permission: 'pagos.revisar',
             },
             {
+                label: 'Revisar garantías',
+                icon: '🛡️',
+                route: 'garantias.evidencias.index',
+                active: 'garantias.evidencias.*',
+                permission: 'garantias.revisar',
+            },
+            {
                 label: 'Clientes',
                 icon: '👥',
                 route: 'clientes.index',

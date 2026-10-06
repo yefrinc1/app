@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientePedidoController;
 use App\Http\Controllers\ClientePortalAccesoController;
+use App\Http\Controllers\InstalacionEvidenciaController;
 use App\Http\Controllers\PagoLiquidacionController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PedidoAnulacionController;
@@ -17,6 +18,11 @@ Route::get('/clientes', [ClientePedidoController::class, 'index'])->name('client
 Route::get('/clientes/{cliente}', [ClientePedidoController::class, 'show'])->name('clientes.show');
 Route::patch('/clientes/{cliente}', [ClientePedidoController::class, 'update'])->name('clientes.update');
 Route::post('/clientes/{cliente}/portal-acceso', [ClientePortalAccesoController::class, 'generar'])->name('clientes.portal-acceso.generar');
+
+Route::get('/garantias/evidencias', [InstalacionEvidenciaController::class, 'index'])->name('garantias.evidencias.index');
+Route::get('/garantias/evidencias/{evidencia}/archivo', [InstalacionEvidenciaController::class, 'archivo'])->name('garantias.evidencias.archivo');
+Route::patch('/garantias/evidencias/{evidencia}/aprobar', [InstalacionEvidenciaController::class, 'aprobar'])->name('garantias.evidencias.aprobar');
+Route::patch('/garantias/evidencias/{evidencia}/rechazar', [InstalacionEvidenciaController::class, 'rechazar'])->name('garantias.evidencias.rechazar');
 
 Route::get('/pedidos/pagos/pendientes', [PedidoPagoController::class, 'pendientes'])->name('pedidos.pagos.pendientes');
 Route::get('/pedidos/pagos/{pago}/comprobante', [PedidoPagoController::class, 'comprobante'])->name('pedidos.pagos.comprobante');

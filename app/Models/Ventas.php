@@ -54,4 +54,19 @@ class Ventas extends Model
     {
         return $this->hasOne(VentaAnulacion::class, 'venta_id');
     }
+
+    public function evidenciasInstalacion()
+    {
+        return $this->hasMany(InstalacionEvidencia::class, 'venta_id');
+    }
+
+    public function ultimaEvidenciaInstalacion()
+    {
+        return $this->hasOne(InstalacionEvidencia::class, 'venta_id')->latestOfMany();
+    }
+
+    public function accesosPortal()
+    {
+        return $this->hasMany(PortalJuegoAcceso::class, 'venta_id');
+    }
 }
