@@ -52,21 +52,35 @@ class Cliente extends Model
 
     public function scopeBuscar($query, ?string $termino)
     {
-        $termino = trim((string) $termino);
+        $termino = trim(preg_replace('/\p{Cf}+/u', '', (string) $termino) ?? '');
 
         if ($termino === '') {
             return $query;
         }
 
-        $numeros = preg_replace('/\D/', '', $termino);
+        $numeros = preg_match('/^\+?[0-9\s().-]+$/', $termino)
+            ? preg_replace('/\D/', '', $termino)
+            : '';
+        $usuario = self::normalizarUsuario($termino);
+        // Un escape explícito conserva guiones bajos y porcentajes literales.
+        $patron = static fn ($valor) => '%'.str_replace(
+            ['!', '%', '_'], ['!!', '!%', '!_'], $valor
+        ).'%';
 
-        return $query->where(function ($consulta) use ($termino, $numeros) {
-            $consulta->where('nombre', 'like', "%{$termino}%")
-                ->orWhere('usuario', 'like', "%{$termino}%")
-                ->orWhere('email', 'like', "%{$termino}%");
+        return $query->where(function ($consulta) use ($termino, $numeros, $usuario, $patron) {
+            $consulta->whereRaw("nombre LIKE ? ESCAPE '!'", [$patron($termino)])
+                ->orWhereRaw("email LIKE ? ESCAPE '!'", [$patron($termino)]);
+
+            if ($usuario !== null) {
+                $consulta->orWhereRaw("usuario LIKE ? ESCAPE '!'", [$patron($usuario)]);
+            }
 
             if ($numeros !== '') {
-                $consulta->orWhere('telefono', 'like', "%{$numeros}%");
+                $consulta->orWhere('telefono', 'like', "%{$numeros}%")
+                    ->orWhereRaw(
+                        "CONCAT(COALESCE(codigo_pais, ''), COALESCE(telefono, '')) LIKE ?",
+                        ["%{$numeros}%"]
+                    );
             }
         });
     }
