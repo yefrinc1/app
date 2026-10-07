@@ -22,6 +22,19 @@ class Cliente extends Model
         'portal_activated_at' => 'datetime',
     ];
 
+    public static function normalizarUsuario(mixed $valor): ?string
+    {
+        $usuario = preg_replace('/[\p{Cf}\p{Z}\s]+/u', '', (string) ($valor ?? '')) ?? '';
+        $usuario = ltrim(mb_strtolower($usuario, 'UTF-8'), '@');
+
+        return $usuario === '' ? null : $usuario;
+    }
+
+    public function setUsuarioAttribute(mixed $valor): void
+    {
+        $this->attributes['usuario'] = self::normalizarUsuario($valor);
+    }
+
     public function cuentaPortal()
     {
         return $this->belongsTo(User::class, 'user_id');

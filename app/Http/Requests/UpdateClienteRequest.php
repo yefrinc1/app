@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Cliente;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -64,8 +65,7 @@ class UpdateClienteRequest extends FormRequest
 
     private function normalizarUsuario(mixed $valor): ?string
     {
-        $valor = ltrim(strtolower(trim((string) ($valor ?? ''))), '@');
-        return $valor === '' ? null : $valor;
+        return Cliente::normalizarUsuario($valor);
     }
 
     private function normalizarEmail(mixed $valor): ?string

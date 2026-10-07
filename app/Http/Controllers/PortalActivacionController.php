@@ -145,10 +145,6 @@ class PortalActivacionController extends Controller
 
     private function normalizarUsuario(?string $usuario): string
     {
-        // Los nombres copiados desde aplicaciones pueden incluir marcas
-        // Unicode invisibles. Se eliminan antes de mostrarlos y validarlos.
-        $usuario = preg_replace('/[\p{Cf}\s]+/u', '', (string) $usuario) ?? '';
-
-        return ltrim(mb_strtolower($usuario, 'UTF-8'), '@');
+        return Cliente::normalizarUsuario($usuario) ?? '';
     }
 }

@@ -110,7 +110,7 @@ class ClientePedidoController extends Controller
     {
         $datos['codigo_pais'] = ! empty($datos['codigo_pais']) ? preg_replace('/\D/', '', $datos['codigo_pais']) : null;
         $datos['telefono'] = ! empty($datos['telefono']) ? preg_replace('/\D/', '', $datos['telefono']) : null;
-        $datos['usuario'] = ! empty($datos['usuario']) ? ltrim(strtolower(trim($datos['usuario'])), '@') : null;
+        $datos['usuario'] = Cliente::normalizarUsuario($datos['usuario'] ?? null);
         $datos['email'] = ! empty($datos['email']) ? strtolower(trim($datos['email'])) : null;
         return $datos;
     }

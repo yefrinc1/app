@@ -2,10 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Cliente;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreClientePedidoRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['usuario' => Cliente::normalizarUsuario($this->input('usuario'))]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can('pedidos.crear') ?? false;
