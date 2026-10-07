@@ -34,7 +34,7 @@ class PortalActivacionController extends Controller
                 'nombre' => $cliente->nombre,
                 'codigo_pais' => $cliente->codigo_pais ?: '57',
                 'telefono' => $cliente->telefono,
-                'usuario' => $cliente->usuario,
+                'usuario' => $this->normalizarUsuario($cliente->usuario),
                 'email' => $cliente->email,
                 'contacto' => $this->contactoProtegido($cliente),
             ],
@@ -50,7 +50,7 @@ class PortalActivacionController extends Controller
             'name' => trim((string) $request->input('name')),
             'codigo_pais' => preg_replace('/\D/', '', (string) $request->input('codigo_pais')),
             'telefono' => preg_replace('/\D/', '', (string) $request->input('telefono')),
-            'usuario' => ltrim(strtolower(trim((string) $request->input('usuario'))), '@'),
+            'usuario' => $this->normalizarUsuario($request->input('usuario')),
             'email' => strtolower(trim((string) $request->input('email'))),
         ]);
 
@@ -135,10 +135,20 @@ class PortalActivacionController extends Controller
             return 'Teléfono terminado en '.substr($cliente->telefono, -4);
         }
 
-        if ($cliente->usuario) {
-            return '@'.substr($cliente->usuario, 0, 2).'***';
+        $usuario = $this->normalizarUsuario($cliente->usuario);
+        if ($usuario !== '') {
+            return '@'.mb_substr($usuario, 0, 2, 'UTF-8').'***';
         }
 
         return 'Ficha de cliente #'.$cliente->id;
+    }
+
+    private function normalizarUsuario(?string $usuario): string
+    {
+        // Los nombres copiados desde aplicaciones pueden incluir marcas
+        // Unicode invisibles. Se eliminan antes de mostrarlos y validarlos.
+        $usuario = preg_replace('/[\p{Cf}\s]+/u', '', (string) $usuario) ?? '';
+
+        return ltrim(mb_strtolower($usuario, 'UTF-8'), '@');
     }
 }
