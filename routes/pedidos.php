@@ -12,6 +12,8 @@ use App\Http\Controllers\PedidoPagoController;
 use App\Http\Controllers\PedidoReembolsoController;
 use Illuminate\Support\Facades\Route;
 
+require __DIR__.'/clientes-unificacion.php';
+
 Route::get('/clientes/buscar', [ClientePedidoController::class, 'buscar'])->name('clientes.buscar');
 Route::post('/clientes/rapido', [ClientePedidoController::class, 'store'])->name('clientes.rapido.store');
 Route::get('/clientes', [ClientePedidoController::class, 'index'])->name('clientes.index');

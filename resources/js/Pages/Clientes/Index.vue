@@ -35,6 +35,10 @@ const clienteActualizado = (cliente) => {
         </template>
         <template #contenido-pagina>
             <div class="space-y-6">
+                <nav class="flex flex-wrap gap-2" aria-label="Clientes">
+                    <PrimaryButton type="button" aria-current="page">Directorio de clientes</PrimaryButton>
+                    <Link v-if="puedeEditar" :href="route('clientes.unificar.index')"><SecondaryButton type="button"><i class="fa-solid fa-link mr-2"></i>Unificar clientes</SecondaryButton></Link>
+                </nav>
                 <SectionCard title="Consultar clientes" description="Busca por nombre, teléfono, Instagram o correo." icon="fa-solid fa-magnifying-glass text-blue-500">
                     <template #actions><div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"><p class="text-sm text-gray-500">Clientes encontrados</p><p class="text-lg font-bold text-gray-900">{{ clientes.total ?? clientes.data.length }}</p></div></template>
                     <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="consultar">

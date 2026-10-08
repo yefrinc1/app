@@ -51,6 +51,11 @@ const clienteActualizado = (cliente) => { clienteSeleccionado.value = { ...clien
 const subtotalDetalles = computed(() => form.detalles.reduce((total, item) => total + Math.max(0, (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)) - Number(item.descuento || 0)), 0));
 const total = computed(() => Math.max(0, subtotalDetalles.value - Number(form.descuento || 0)));
 const pagosRegistrados = computed(() => form.pagos.reduce((suma, pago) => suma + Number(pago.valor_bruto || 0), 0));
+const ingresarEntero = (evento, objeto, campo) => {
+    const valor = evento.target.value.replace(/[^0-9]/g, '');
+    evento.target.value = valor;
+    objeto[campo] = valor;
+};
 const agregarDetalle = () => form.detalles.push(detalleVacio());
 const quitarDetalle = (indice) => form.detalles.length > 1 && form.detalles.splice(indice, 1);
 const agregarPago = () => form.pagos.push(pagoVacio());
@@ -128,8 +133,8 @@ const guardar = async () => {
                                 <FormSelect :id="`cuenta-${indice}`" v-model="detalle.tipo_cuenta" label="Tipo de cuenta" :error="form.errors[`detalles.${indice}.tipo_cuenta`]" icon="fa-solid fa-key" required><option value="">Seleccionar</option><option value="Primaria">👑 Cuenta Primaria</option><option value="Secundaria">🎮 Cuenta Secundaria</option></FormSelect>
                                 <FormSelect :id="`consola-${indice}`" v-model="detalle.consola" label="Consola" :error="form.errors[`detalles.${indice}.consola`]" icon="fa-brands fa-playstation" required><option value="">Seleccionar</option><option value="PS4">PlayStation 4</option><option value="PS5">PlayStation 5</option></FormSelect>
                                 <div><InputLabel :for="`cantidad-${indice}`" value="Cantidad" /><TextInput :id="`cantidad-${indice}`" v-model="detalle.cantidad" type="number" min="1" max="20" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors[`detalles.${indice}.cantidad`]" /></div>
-                                <div><InputLabel :for="`precio-${indice}`" value="Precio unitario" /><TextInput :id="`precio-${indice}`" v-model="detalle.precio_unitario" type="number" min="0" step="0.01" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors[`detalles.${indice}.precio_unitario`]" /></div>
-                                <div><InputLabel :for="`descuento-${indice}`" value="Descuento" /><TextInput :id="`descuento-${indice}`" v-model="detalle.descuento" type="number" min="0" step="0.01" class="mt-1 block w-full" /></div>
+                                <div><InputLabel :for="`precio-${indice}`" value="Precio unitario" /><TextInput :id="`precio-${indice}`" :model-value="detalle.precio_unitario" @input="ingresarEntero($event, detalle, 'precio_unitario')" type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors[`detalles.${indice}.precio_unitario`]" /></div>
+                                <div><InputLabel :for="`descuento-${indice}`" value="Descuento" /><TextInput :id="`descuento-${indice}`" :model-value="detalle.descuento" @input="ingresarEntero($event, detalle, 'descuento')" type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /></div>
                                 <div class="md:col-span-2 xl:col-span-5"><InputLabel :for="`observacion-juego-${indice}`" value="Observaciones" /><TextInput :id="`observacion-juego-${indice}`" v-model="detalle.observaciones" class="mt-1 block w-full" placeholder="Opcional" /></div>
                             </div>
                         </article>
@@ -159,7 +164,7 @@ const guardar = async () => {
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <FormSelect id="canal-venta" v-model="form.canal_venta" label="Canal de venta" icon="fa-solid fa-store"><option v-for="canal in canales" :key="canal" :value="canal">{{ canal }}</option></FormSelect>
                             <FormSelect id="moneda" v-model="form.moneda" label="Moneda" icon="fa-solid fa-coins"><option value="COP">COP</option><option value="USD">USD</option></FormSelect>
-                            <div><InputLabel for="descuento-general" value="Descuento general" /><TextInput id="descuento-general" v-model="form.descuento" type="number" min="0" class="mt-1 block w-full" /></div>
+                            <div><InputLabel for="descuento-general" value="Descuento general" /><TextInput id="descuento-general" :model-value="form.descuento" @input="ingresarEntero($event, form, 'descuento')" type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /></div>
                             <FormTextarea id="observaciones-pedido" v-model="form.observaciones" label="Observaciones" class="md:col-span-3" />
                         </div>
                     </SectionCard>

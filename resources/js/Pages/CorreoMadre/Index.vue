@@ -64,6 +64,12 @@ const buscarCorreo = () => {
     });
 };
 
+const ingresarSaldoCop = (evento) => {
+    const valor = evento.target.value.replace(/[^0-9]/g, '');
+    evento.target.value = valor;
+    form.saldo_cop = valor;
+};
+
 const editarCorreo = () => {
     form.put(route("correo-madre.update", form.id), {
         preserveScroll: true,
@@ -136,7 +142,7 @@ const sumarSaldo = (tipo) => {
         form.saldo_cop = (
             parseFloat(form.saldo_cop) || 0
         ) + (
-            parseFloat(prompt('¿Cuánto quieres sumar al saldo COP?')) || 0
+            Number((prompt('¿Cuánto quieres sumar al saldo COP?') || '').replace(/[^0-9]/g, '')) || 0
         );
     }
 };
@@ -325,7 +331,7 @@ const sumarSaldo = (tipo) => {
                     <div class="mt-6 flex items-end gap-2">
                         <div class="w-full">
                             <InputLabel for="saldo_cop" value="Saldo COP" />
-                            <TextInput id="saldo_cop" ref="saldo_cop" v-model="form.saldo_cop" type="text"
+                            <TextInput id="saldo_cop" ref="saldo_cop" :model-value="form.saldo_cop" @input="ingresarSaldoCop" type="text" inputmode="numeric" pattern="[0-9]*"
                                 class="mt-1 block w-full" autocomplete="saldo_cop"/>
                             <InputError :message="form.errors.saldo_cop" class="mt-2" />
                         </div>
