@@ -16,8 +16,19 @@ class EnsureClientePortal
             return redirect()->route('dashboard');
         }
 
-        if (! $user->cliente()->exists()) {
+        $cliente = $user->cliente()->first();
+        if (! $cliente) {
             abort(403, 'Esta cuenta no está vinculada con una ficha de cliente. Comunícate con soporte.');
+        }
+
+        if ($cliente->portal_requiere_verificacion_email && !$user->hasVerifiedEmail()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Verifica tu correo antes de consultar tus juegos.',
+                    'verification_required' => true,
+                ], 403);
+            }
+            return redirect()->route('portal.correo.notice');
         }
 
         return $next($request);

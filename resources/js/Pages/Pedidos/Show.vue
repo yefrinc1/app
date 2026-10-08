@@ -8,61 +8,29 @@ import DangerButton from '@/Components/DangerButton.vue';
 import Modal from '@/Components/Modal.vue';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import EntregasPedido from './Partials/Entregas.vue';
+import CambiarJuego from './Partials/CambiarJuego.vue';
+import EditarPago from './Partials/EditarPago.vue';
 import AnulacionesReembolsos from './Partials/AnulacionesReembolsos.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import axios from 'axios';
-import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
 import {
     confirmarOperacion, mostrarAdvertencia, mostrarCarga, mostrarErrores, mostrarRespuesta,
     pedirTexto, verComprobante,
 } from '@/Utils/alertas';
 import FileInput from './Components/FileInput.vue';
 import FormSelect from './Components/FormSelect.vue';
-import { copiarTexto } from '@/Utils/portapapeles';
 
 const props = defineProps({
     pedido: { type: Object, required: true },
     permissions: { type: Array, default: () => [] },
-    portalCliente: { type: Object, default: () => ({ activo: false }) },
 });
 const can = (permiso) => props.permissions.includes(permiso);
-const generandoPortal = ref(false);
-const compartirPortal = async () => {
-    if (props.portalCliente.activo) {
-        const url = window.location.origin + route('login', {}, false);
-        try {
-            await copiarTexto(url);
-            await Swal.fire({ title: 'Enlace de ingreso copiado', text: `El cliente ingresa con ${props.portalCliente.email_acceso}.`, icon: 'success', timer: 1900, showConfirmButton: false });
-        } catch (_) {
-            await Swal.fire({ title: 'Copia el enlace de ingreso', text: `El cliente ingresa con ${props.portalCliente.email_acceso}.`, input: 'text', inputValue: url, inputAttributes: { readonly: 'readonly' }, icon: 'info', confirmButtonText: 'Cerrar' });
-        }
-        return;
-    }
 
-    const confirmado = await confirmarOperacion({ titulo: '¿Crear portal para este cliente?', texto: 'Se generará un enlace privado de activación y se vincularán sus compras anteriores.', confirmButtonText: 'Sí, generar enlace' });
-    if (!confirmado) return;
-    generandoPortal.value = true;
-    mostrarCarga('Preparando portal…', 'Creando un acceso seguro para el cliente.');
-    try {
-        const { data } = await axios.post(route('clientes.portal-acceso.generar', props.pedido.cliente_id));
-        const resultado = await Swal.fire({ title: 'Portal preparado', html: '<p style="margin-bottom:12px;color:#4b5563">Envía este enlace al cliente. Vence en 7 días y funciona una sola vez.</p>', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'success', showCancelButton: true, confirmButtonText: 'Copiar enlace', cancelButtonText: 'Cerrar', confirmButtonColor: '#16a34a', reverseButtons: true });
-        if (resultado.isConfirmed) {
-            try {
-                await copiarTexto(data.url);
-                await Swal.fire({ title: 'Enlace copiado', icon: 'success', timer: 1400, showConfirmButton: false });
-            } catch (_) {
-                await Swal.fire({ title: 'Enlace generado', text: 'El navegador no permitió copiarlo automáticamente. Selecciónalo y cópialo manualmente.', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'warning', confirmButtonText: 'Cerrar' });
-            }
-        }
-    } catch (error) {
-        await mostrarErrores(error.response?.data?.errors ?? { portal: error.response?.data?.message }, 'No se pudo preparar el portal');
-    } finally {
-        generandoPortal.value = false;
-    }
+const ingresarEntero = (evento, objeto, campo) => {
+    const valor = evento.target.value.replace(/[^0-9]/g, '');
+    evento.target.value = valor;
+    objeto[campo] = valor;
 };
-
 const fechaHoraLocal = () => {
     const fecha = new Date();
     fecha.setMinutes(fecha.getMinutes() - fecha.getTimezoneOffset());
@@ -201,14 +169,9 @@ const etiquetaEstado = (estado) => ({
                     <div class="rounded-xl border border-purple-100 bg-gradient-to-br from-white to-purple-50 p-5 shadow"><p class="text-xs font-bold uppercase text-gray-500">Estado financiero</p><p class="mt-2 text-xl font-black">{{ etiquetaEstado(pedido.estado_financiero) }}</p><p class="text-sm text-gray-500">Reembolsado: {{ dinero(pedido.total_reembolsado) }}</p><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(pedido.estado_financiero)">{{ etiquetaEstado(pedido.estado_financiero) }}</span></div>
                 </section>
 
-                <section class="flex flex-col gap-4 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 p-5 shadow sm:flex-row sm:items-center sm:justify-between">
-                    <div><p class="font-black text-purple-900"><i class="fa-solid fa-mobile-screen-button mr-2"></i>Entrega mediante el portal</p><p class="mt-1 text-sm text-purple-700">{{ portalCliente.activo ? `Cuenta activa: ${portalCliente.email_acceso}. Comparte el enlace de ingreso para que consulte sus juegos.` : 'Genera el enlace de activación y envíalo en lugar de copiar usuario y contraseña.' }}</p></div>
-                    <PrimaryButton v-if="can('clientes.editar')" type="button" class="w-full shrink-0 justify-center sm:w-auto" :disabled="generandoPortal" @click="compartirPortal"><i class="mr-2" :class="portalCliente.activo ? 'fa-solid fa-copy' : 'fa-solid fa-link'"></i>{{ generandoPortal ? 'Generando…' : (portalCliente.activo ? 'Copiar ingreso' : 'Generar acceso') }}</PrimaryButton>
-                </section>
-
                 <section class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                     <h2 class="font-black text-gray-900">🎮 Juegos solicitados</h2>
-                    <div class="mt-4 overflow-x-auto rounded-lg shadow"><table class="min-w-full border border-gray-200 text-sm"><thead><tr class="border-b bg-gray-100"><th class="p-3 text-left">Juego</th><th class="p-3 text-left">Licencia</th><th class="p-3 text-left">Cantidad</th><th class="p-3 text-left">Generadas</th><th class="p-3 text-left">Valor</th><th class="p-3 text-left">Estado</th></tr></thead><tbody><tr v-for="detalle in pedido.detalles" :key="detalle.id" class="border-b hover:bg-gray-100"><td class="p-3"><div class="min-w-[220px] rounded-lg bg-gray-50 p-2 font-bold"><i class="fa-solid fa-gamepad mr-2 text-blue-500"></i>{{ detalle.juego }}</div></td><td class="p-3"><span class="rounded-lg bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-800">{{ detalle.tipo_cuenta }}</span> <span class="rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-800">{{ detalle.consola }}</span></td><td class="p-3">{{ detalle.cantidad }}</td><td class="p-3">{{ detalle.cantidad_generada }}</td><td class="p-3"><span class="rounded-lg bg-gradient-to-r from-green-100 to-green-200 px-3 py-1 font-bold text-green-900 shadow-sm">{{ dinero(detalle.subtotal) }}</span></td><td class="p-3"><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(detalle.estado)">{{ etiquetaEstado(detalle.estado) }}</span></td></tr></tbody></table></div>
+                    <div class="mt-4 overflow-x-auto rounded-lg shadow"><table class="min-w-full border border-gray-200 text-sm"><thead><tr class="border-b bg-gray-100"><th class="p-3 text-left">Juego</th><th class="p-3 text-left">Licencia</th><th class="p-3 text-left">Cantidad</th><th class="p-3 text-left">Generadas</th><th class="p-3 text-left">Valor</th><th class="p-3 text-left">Estado</th><th class="p-3 text-left">Acciones</th></tr></thead><tbody><tr v-for="detalle in pedido.detalles" :key="detalle.id" class="border-b hover:bg-gray-100"><td class="p-3"><div class="min-w-[220px] rounded-lg bg-gray-50 p-2 font-bold"><i class="fa-solid fa-gamepad mr-2 text-blue-500"></i>{{ detalle.juego }}</div></td><td class="p-3"><span class="rounded-lg bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-800">{{ detalle.tipo_cuenta }}</span> <span class="rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-800">{{ detalle.consola }}</span></td><td class="p-3">{{ detalle.cantidad }}</td><td class="p-3">{{ detalle.cantidad_generada }}</td><td class="p-3"><span class="rounded-lg bg-gradient-to-r from-green-100 to-green-200 px-3 py-1 font-bold text-green-900 shadow-sm">{{ dinero(detalle.subtotal) }}</span></td><td class="p-3"><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(detalle.estado)">{{ etiquetaEstado(detalle.estado) }}</span></td><td class="p-3"><CambiarJuego :pedido="pedido" :detalle="detalle" :permitido="can('pedidos.entregar')" /></td></tr></tbody></table></div>
                 </section>
 
                 <EntregasPedido :pedido="pedido" :can="can" />
@@ -221,7 +184,7 @@ const etiquetaEstado = (estado) => ({
                         <article v-for="pago in pedido.pagos" :key="pago.id" class="rounded-xl border border-gray-100 bg-gray-50 p-4">
                             <div class="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
                                 <div><div class="flex items-center gap-2"><strong class="rounded-lg bg-gradient-to-r from-green-100 to-green-200 px-3 py-1 text-green-900 shadow-sm">{{ dinero(pago.valor_bruto, pago.moneda) }}</strong><span class="rounded-lg px-2 py-1 text-xs font-bold" :class="color(pago.estado)">{{ pago.estado }}</span></div><p class="mt-2 text-sm text-gray-500"><i class="fa-solid fa-credit-card mr-2 text-purple-500"></i>{{ pago.metodo_pago }} · {{ pago.referencia || 'Sin referencia' }}</p><p class="text-sm font-semibold text-gray-600">📅 {{ fechaHora(pago.fecha_pago) }}</p><p v-if="pago.motivo_rechazo" class="text-sm text-red-600">{{ pago.motivo_rechazo }}</p></div>
-                                <div class="flex flex-wrap gap-2"><SecondaryButton v-if="pago.comprobante_path" type="button" @click="verComprobante(route('pedidos.pagos.comprobante', pago.id), 'Comprobante del pago')"><i class="fa-solid fa-eye mr-2"></i>Comprobante</SecondaryButton><PrimaryButton v-if="can('pagos.revisar') && pago.estado === 'pendiente'" type="button" @click="aprobar(pago)"><i class="fa-solid fa-check mr-2"></i>Aprobar</PrimaryButton><DangerButton v-if="can('pagos.revisar') && pago.estado === 'pendiente'" type="button" @click="rechazar(pago)"><i class="fa-solid fa-xmark mr-2"></i>Rechazar</DangerButton><PrimaryButton v-if="can('pagos.revisar') && pago.estado === 'aprobado' && !['completado','cancelado','reembolsado'].includes(pedido.estado)" type="button" @click="abrirLiquidacion(pago)"><i class="fa-solid fa-calculator mr-2"></i>Registrar neto</PrimaryButton></div>
+                                <div class="flex flex-wrap gap-2"><EditarPago :pedido="pedido" :pago="pago" :permissions="permissions" /><SecondaryButton v-if="pago.comprobante_path" type="button" @click="verComprobante(route('pedidos.pagos.comprobante', pago.id), 'Comprobante del pago')"><i class="fa-solid fa-eye mr-2"></i>Comprobante</SecondaryButton><PrimaryButton v-if="can('pagos.revisar') && pago.estado === 'pendiente'" type="button" @click="aprobar(pago)"><i class="fa-solid fa-check mr-2"></i>Aprobar</PrimaryButton><DangerButton v-if="can('pagos.revisar') && pago.estado === 'pendiente'" type="button" @click="rechazar(pago)"><i class="fa-solid fa-xmark mr-2"></i>Rechazar</DangerButton><PrimaryButton v-if="can('pagos.revisar') && pago.estado === 'aprobado' && !['completado','cancelado','reembolsado'].includes(pedido.estado)" type="button" @click="abrirLiquidacion(pago)"><i class="fa-solid fa-calculator mr-2"></i>Registrar neto</PrimaryButton></div>
                             </div>
                             <div v-if="pago.liquidaciones?.length" class="mt-3 border-t pt-3"><p class="text-xs font-bold uppercase text-gray-500">Liquidaciones</p><div v-for="liq in pago.liquidaciones" :key="liq.id" class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 bg-white p-3 text-sm"><span>Bruto {{ dinero(liq.valor_bruto) }} · Costos {{ dinero(Number(liq.comision)+Number(liq.retencion)+Number(liq.otros_descuentos)) }}</span><div class="flex items-center gap-2"><strong class="text-green-700">Neto {{ dinero(liq.valor_neto) }}</strong><SecondaryButton v-if="liq.comprobante_path" type="button" class="px-3 py-1.5 text-xs" @click="verComprobante(route('pedidos.pagos.liquidaciones.comprobante', [pago.id, liq.id]), 'Comprobante del valor neto')"><i class="fa-solid fa-paperclip mr-2"></i>Ver adjunto</SecondaryButton></div></div></div>
                         </article>
@@ -232,7 +195,7 @@ const etiquetaEstado = (estado) => ({
                         <h3 class="font-bold text-gray-900"><i class="fa-solid fa-plus-circle mr-2 text-red-600"></i>Agregar pago</h3>
                         <div class="mt-4 grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-6">
                             <FormSelect id="nuevo-metodo" v-model="pagoForm.metodo_pago" label="Método" :error="pagoForm.errors.metodo_pago" icon="fa-solid fa-credit-card" required><option value="">Seleccionar</option><option>Bancolombia</option><option>Nequi</option><option>Mercado Pago</option><option>Jumpseller</option><option>Efectivo</option><option>Otro</option></FormSelect>
-                            <div class="min-w-0"><InputLabel for="nuevo-valor" value="Valor bruto" /><TextInput id="nuevo-valor" v-model="pagoForm.valor_bruto" required type="number" min="1" class="mt-1 block w-full" /><InputError class="mt-2" :message="pagoForm.errors.valor_bruto" /></div>
+                            <div class="min-w-0"><InputLabel for="nuevo-valor" value="Valor bruto" /><TextInput id="nuevo-valor" :model-value="pagoForm.valor_bruto" @input="ingresarEntero($event, pagoForm, 'valor_bruto')" required type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /><InputError class="mt-2" :message="pagoForm.errors.valor_bruto" /></div>
                             <div class="min-w-0"><InputLabel for="nueva-fecha" value="Fecha y hora" /><TextInput id="nueva-fecha" v-model="pagoForm.fecha_pago" type="datetime-local" class="mt-1 block w-full" /><InputError class="mt-2" :message="pagoForm.errors.fecha_pago" /></div>
                             <div class="min-w-0"><InputLabel for="nueva-referencia" value="Referencia" /><TextInput id="nueva-referencia" v-model="pagoForm.referencia" class="mt-1 block w-full" /><InputError class="mt-2" :message="pagoForm.errors.referencia" /></div>
                             <div class="min-w-0 xl:col-span-2"><FileInput id="nuevo-comprobante" label="Comprobante obligatorio" :file-name="pagoForm.comprobante?.name" :error="pagoForm.errors.comprobante" required @change="pagoForm.comprobante = $event.target.files[0] ?? null" /></div>

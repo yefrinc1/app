@@ -13,6 +13,8 @@ use App\Http\Controllers\PedidoReembolsoController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/clientes-unificacion.php';
+require __DIR__.'/pedidos-correcciones.php';
+require __DIR__.'/pedidos-pagos-edicion.php';
 
 Route::get('/clientes/buscar', [ClientePedidoController::class, 'buscar'])->name('clientes.buscar');
 Route::post('/clientes/rapido', [ClientePedidoController::class, 'store'])->name('clientes.rapido.store');
@@ -37,6 +39,7 @@ Route::get('/pedidos/pagos/{pago}/liquidaciones/{liquidacion}/comprobante', [Pag
 
 Route::post('/pedidos/{pedido}/generar-entregas', [PedidoEntregaController::class, 'generar'])->name('pedidos.generar-entregas');
 Route::patch('/pedidos/entregas/{entrega}/confirmar', [PedidoEntregaController::class, 'confirmar'])->name('pedidos.entregas.confirmar');
+
 Route::patch('/pedidos/{pedido}/completar', [PedidoEntregaController::class, 'completar'])->name('pedidos.completar');
 
 Route::post('/pedidos/entregas/{entrega}/anular', [PedidoAnulacionController::class, 'store'])->name('pedidos.entregas.anular');

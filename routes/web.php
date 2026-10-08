@@ -91,4 +91,5 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
 
 Route::get('/cierre-caja-automatico', [CierreCajaController::class, 'cierreCajaAutomatico'])->name('cierre-caja-automatico');
 
+require __DIR__.'/portal-correo.php';
 require __DIR__.'/auth.php';

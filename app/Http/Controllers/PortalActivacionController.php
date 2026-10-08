@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\User;
+use App\Notifications\VerificarCorreoPortal;
 use App\Services\VincularVentasAntiguasService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -88,6 +89,7 @@ class PortalActivacionController extends Controller
                 'email' => strtolower($datos['email']),
                 'password' => Hash::make($datos['password']),
             ]);
+            $user->forceFill(['email_verified_at' => null])->save();
 
             Role::firstOrCreate(['name' => 'cliente', 'guard_name' => 'web']);
             $user->assignRole('cliente');
@@ -102,10 +104,10 @@ class PortalActivacionController extends Controller
                 'portal_token_hash' => null,
                 'portal_token_expires_at' => null,
                 'portal_activated_at' => now(),
+                'portal_requiere_verificacion_email' => true,
             ])->save();
 
             $this->vinculador->vincularCliente($cliente);
-            event(new Registered($user));
 
             return $user;
         });
@@ -113,7 +115,19 @@ class PortalActivacionController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('portal.index')->with('success', 'Tu cuenta fue activada correctamente.');
+        try {
+            // Los correos se envían después de confirmar la transacción.
+            event(new Registered($user));
+            $user->notify(new VerificarCorreoPortal);
+        } catch (\Throwable $error) {
+            report($error);
+            return redirect()->route('portal.correo.notice')->with(
+                'portal_correo_error',
+                'Tu cuenta fue creada, pero no pudimos enviar el correo. Puedes reenviarlo desde esta pantalla.'
+            );
+        }
+
+        return redirect()->route('portal.correo.notice')->with('portal_correo_enviado', true);
     }
 
     private function clienteValido(string $token): Cliente

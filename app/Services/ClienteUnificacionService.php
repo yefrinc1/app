@@ -57,7 +57,7 @@ class ClienteUnificacionService
 
     private function datos(Cliente $cliente): array
     {
-        $datos = $cliente->only(array_merge(['id', 'user_id'], self::CAMPOS));
+        $datos = $cliente->only(array_merge(['id', 'user_id', 'portal_requiere_verificacion_email'], self::CAMPOS));
         $datos['portal_activo'] = (bool) $cliente->user_id;
         $datos['correo_acceso'] = $cliente->cuentaPortal?->email;
         return $datos;
@@ -147,16 +147,21 @@ class ClienteUnificacionService
             }
 
             $userId = $principal->user_id ?: $duplicado->user_id;
+            $requiereVerificacion = (bool) ($principal->user_id
+                ? $principal->portal_requiere_verificacion_email
+                : $duplicado->portal_requiere_verificacion_email);
             $activatedAt = $principal->user_id ? $principal->portal_activated_at : $duplicado->portal_activated_at;
 
             // Libera los identificadores antes de asignarlos al registro conservado.
             DB::table('clientes')->where('id', $duplicado->id)->update([
                 'telefono' => null, 'usuario' => null, 'email' => null, 'user_id' => null,
                 'portal_token_hash' => null, 'portal_token_expires_at' => null,
-                'portal_activated_at' => null, 'deleted_at' => now(), 'updated_at' => now(),
+                'portal_activated_at' => null, 'portal_requiere_verificacion_email' => false,
+                'deleted_at' => now(), 'updated_at' => now(),
             ]);
             $principal->fill($elegidos);
             $principal->user_id = $userId;
+            $principal->portal_requiere_verificacion_email = $requiereVerificacion;
             $principal->portal_activated_at = $activatedAt;
             $principal->portal_token_hash = null;
             $principal->portal_token_expires_at = null;
