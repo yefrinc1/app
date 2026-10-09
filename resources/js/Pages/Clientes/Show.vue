@@ -6,6 +6,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { mensajeActivacionPortal, mensajeIngresoPortal } from '@/Utils/mensajesPortal';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import Pagination from '@/Pages/Pedidos/Components/Pagination.vue';
 import SectionCard from '@/Pages/Pedidos/Components/SectionCard.vue';
@@ -31,17 +32,17 @@ const generarAcceso = async () => {
         const { data } = await axios.post(route('clientes.portal-acceso.generar', clienteVisible.value.id));
         const resultado = await Swal.fire({
             title: 'Enlace listo',
-            html: '<p style="margin-bottom:12px;color:#4b5563">Envíalo al cliente por WhatsApp. Solo puede utilizarse una vez y vence en 7 días.</p>',
-            input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' },
-            icon: 'success', confirmButtonText: 'Copiar enlace', confirmButtonColor: '#16a34a',
+            text: 'Envía el mensaje completo al cliente. El enlace vence el ' + new Date(data.expires_at).toLocaleString('es-CO') + ' y funciona una sola vez.',
+            input: 'textarea', inputValue: mensajeActivacionPortal(data.url), inputAttributes: { readonly: 'readonly' },
+            icon: 'success', confirmButtonText: 'Copiar mensaje y enlace', confirmButtonColor: '#16a34a',
             showCancelButton: true, cancelButtonText: 'Cerrar', reverseButtons: true,
         });
         if (resultado.isConfirmed) {
             try {
-                await copiarTexto(data.url);
-                await Swal.fire({ title: 'Enlace copiado', icon: 'success', timer: 1400, showConfirmButton: false });
+                await copiarTexto(mensajeActivacionPortal(data.url));
+                await Swal.fire({ title: 'Mensaje y enlace copiados', icon: 'success', timer: 1400, showConfirmButton: false });
             } catch (_) {
-                await Swal.fire({ title: 'Enlace generado', text: 'El navegador no permitió copiarlo automáticamente. Selecciónalo y cópialo manualmente.', input: 'text', inputValue: data.url, inputAttributes: { readonly: 'readonly' }, icon: 'warning', confirmButtonText: 'Cerrar' });
+                await Swal.fire({ title: 'Enlace generado', text: 'El navegador no permitió copiarlo automáticamente. Selecciona el mensaje completo y cópialo manualmente.', input: 'textarea', inputValue: mensajeActivacionPortal(data.url), inputAttributes: { readonly: 'readonly' }, icon: 'warning', confirmButtonText: 'Cerrar' });
             }
         }
     } catch (error) {
@@ -53,10 +54,10 @@ const generarAcceso = async () => {
 const copiarIngreso = async () => {
     const url = window.location.origin + route('login', {}, false);
     try {
-        await copiarTexto(url);
-        await Swal.fire({ title: 'Enlace de ingreso copiado', text: 'Ya puedes enviarlo al cliente.', icon: 'success', timer: 1700, showConfirmButton: false });
+        await copiarTexto(mensajeIngresoPortal(url, props.portal.email_acceso));
+        await Swal.fire({ title: 'Mensaje de ingreso copiado', text: 'Ya puedes enviarlo al cliente.', icon: 'success', timer: 1700, showConfirmButton: false });
     } catch (_) {
-        await Swal.fire({ title: 'Copia el enlace de ingreso', input: 'text', inputValue: url, inputAttributes: { readonly: 'readonly' }, icon: 'info', confirmButtonText: 'Cerrar' });
+        await Swal.fire({ title: 'Copia el mensaje de ingreso', input: 'textarea', inputValue: mensajeIngresoPortal(url, props.portal.email_acceso), inputAttributes: { readonly: 'readonly' }, icon: 'info', confirmButtonText: 'Cerrar' });
     }
 };
 </script>
@@ -92,7 +93,7 @@ const copiarIngreso = async () => {
                     <div class="flex flex-col gap-5 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between" :class="portal.activo ? 'border-green-200 bg-green-50' : 'border-purple-200 bg-purple-50'">
                         <div><p class="font-black" :class="portal.activo ? 'text-green-900' : 'text-purple-900'"><i class="mr-2" :class="portal.activo ? 'fa-solid fa-circle-check' : 'fa-solid fa-link'"></i>{{ portal.activo ? 'Cuenta activa' : 'Acceso sin activar' }}</p><p class="mt-1 text-sm" :class="portal.activo ? 'text-green-700' : 'text-purple-700'">{{ portal.activo ? `El cliente inicia sesión con ${portal.email_acceso}.` : 'Genera un enlace privado para que el cliente cree su contraseña.' }}</p><p class="mt-2 text-xs text-gray-500">Compras históricas vinculadas: {{ portal.ventas_historicas }}</p></div>
                         <PrimaryButton v-if="puedeEditar && !portal.activo" type="button" class="w-full justify-center sm:w-auto" :disabled="generandoAcceso" @click="generarAcceso"><i class="fa-solid fa-paper-plane mr-2"></i>{{ generandoAcceso ? 'Generando…' : 'Generar enlace' }}</PrimaryButton>
-                        <PrimaryButton v-else-if="portal.activo" type="button" class="w-full justify-center sm:w-auto" @click="copiarIngreso"><i class="fa-solid fa-copy mr-2"></i>Copiar enlace de ingreso</PrimaryButton>
+                        <PrimaryButton v-else-if="portal.activo" type="button" class="w-full justify-center sm:w-auto" @click="copiarIngreso"><i class="fa-solid fa-copy mr-2"></i>Copiar mensaje de ingreso</PrimaryButton>
                     </div>
                 </SectionCard>
 
