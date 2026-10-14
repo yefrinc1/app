@@ -10,3 +10,6 @@ Route::post('/mi-cuenta/verificar-correo/reenviar', [PortalCorreoVerificacionCon
     ->middleware('throttle:1,1')->name('portal.correo.enviar');
 Route::get('/mi-cuenta/verificar-correo/{id}/{hash}', [PortalCorreoVerificacionController::class, 'verify'])
     ->whereNumber('id')->middleware('throttle:10,1')->name('portal.correo.verificar');
+
+Route::post('/mi-cuenta/verificar-correo/cambiar', [PortalCorreoVerificacionController::class, 'change'])
+    ->middleware('throttle:3,10')->name('portal.correo.cambiar');
