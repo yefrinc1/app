@@ -11,7 +11,7 @@ class ProductosJumpsellerController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:integraciones.productos.ofertas', ['only' => ['index', 'quitarOferta', 'quitarTodasOfertas']]);
+        $this->middleware('can:integraciones.productos.ofertas', ['only' => ['index', 'quitarOferta', 'quitarTodasOfertas', 'exportarOfertas']]);
         $this->middleware('can:integraciones.productos.sincronizar', ['only' => ['sincronizarProductos', 'sincronizarProductosUpdate']]);
     }
     public function index(JumpsellerApiService $jumpseller)
@@ -52,6 +52,44 @@ class ProductosJumpsellerController extends Controller
             'mensaje' => session('mensaje'),
             'tipo' => session('tipo', 'success'),
         ]);
+    }
+
+    public function exportarOfertas(JumpsellerApiService $jumpseller)
+    {
+        try {
+            $conteo = $jumpseller->getProductosOfertaCount();
+            $total = (int) ($conteo['count'] ?? 0);
+            $productos = [];
+
+            if ($total > 0) {
+                $porPagina = 100;
+                $paginas = (int) ceil($total / $porPagina);
+
+                for ($i = 1; $i <= $paginas; $i++) {
+                    $pagina = $jumpseller->getProductosOferta($porPagina, $i) ?: [];
+
+                    foreach ($pagina as $producto) {
+                        $productos[] = $producto;
+                    }
+                }
+            }
+
+            return Inertia::render('ProductosJumpseller/ExportarOfertas', [
+                'total' => $total,
+                'productos' => $productos,
+                'consultado_at' => now()->toIso8601String(),
+                'error' => null,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return Inertia::render('ProductosJumpseller/ExportarOfertas', [
+                'total' => 0,
+                'productos' => [],
+                'consultado_at' => now()->toIso8601String(),
+                'error' => 'No se pudieron consultar las ofertas en Jumpseller. Revisa JUMPSELLER_OFERTAS_CATEGORY_ID y las credenciales de la API.',
+            ]);
+        }
     }
 
     /**

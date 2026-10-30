@@ -13,7 +13,7 @@ const fechaHora = (valor) => valor ? new Date(valor).toLocaleString('es-CO', { d
 const tamano = (bytes) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 const contacto = (cliente) => cliente?.nombre || cliente?.telefono || cliente?.usuario || cliente?.email || `Cliente #${cliente?.id}`;
 const estadoClase = (estado) => ({ en_revision: 'bg-blue-100 text-blue-800', aprobada: 'bg-green-100 text-green-800', rechazada: 'bg-red-100 text-red-800' }[estado] ?? 'bg-gray-100 text-gray-700');
-const accionTexto = (accion) => ({ ver_datos: 'Abrió los datos', copiar_usuario: 'Copió el usuario', copiar_contrasena: 'Copió la contraseña', copiar_codigo: 'Copió el código', copiar_todos: 'Copió todos los datos', abrir_tutorial: 'Abrió el tutorial' }[accion] ?? accion.replaceAll('_', ' '));
+const accionTexto = (accion) => ({ ver_datos: 'Abrió los datos', copiar_usuario: 'Copió el usuario', copiar_contrasena: 'Copió la contraseña', copiar_codigo: 'Copió el código', copiar_todos: 'Copió todos los datos', abrir_tutorial: 'Abrió el tutorial', abrir_candado: 'Abrió ayuda del candado', solicitar_codigo: 'Pidió un código' }[accion] ?? accion.replaceAll('_', ' '));
 const buscar = () => router.get(route('garantias.evidencias.index'), { ...filtro }, { preserveState: true, replace: true });
 const cambiarEstado = (estado) => { filtro.estado = estado; buscar(); };
 const mostrarError = (errores, titulo) => Swal.fire({ title: titulo, text: Object.values(errores || {}).join('\n') || 'Ocurrió un error inesperado.', icon: 'error', confirmButtonColor: '#dc2626' });

@@ -18,12 +18,13 @@ class InventarioAsignacionService
     public function __construct(
         private PedidoTotalesService $totales,
         private ResumenMensualService $resumen,
+        private JumpsellerAgotadoService $jumpsellerAgotado,
     ) {
     }
 
     public function generarDisponibles(Pedido $pedido, int $usuarioId): array
     {
-        return DB::transaction(function () use ($pedido, $usuarioId) {
+        $resultado = DB::transaction(function () use ($pedido, $usuarioId) {
             $pedido = Pedido::query()
                 ->with(['cliente', 'pagos.liquidaciones', 'detalles.entregas'])
                 ->lockForUpdate()
@@ -176,6 +177,10 @@ class InventarioAsignacionService
                 'estado_pedido' => $pedido->estado,
             ];
         }, 3);
+
+        $this->jumpsellerAgotado->sincronizarAgotados($resultado['generadas']);
+
+        return $resultado;
     }
 
     private function buscarCuentaYCodigo(PedidoDetalle $detalle): ?array

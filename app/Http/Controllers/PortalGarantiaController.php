@@ -19,7 +19,7 @@ class PortalGarantiaController extends Controller
 {
     private const ACCIONES = [
         'ver_datos', 'copiar_usuario', 'copiar_contrasena',
-        'copiar_codigo', 'copiar_todos', 'abrir_tutorial',
+        'copiar_codigo', 'copiar_todos', 'abrir_tutorial', 'abrir_candado', 'solicitar_codigo',
     ];
 
     public function store(Request $request, string $origen, int $id): RedirectResponse
@@ -63,7 +63,7 @@ class PortalGarantiaController extends Controller
         $nombreOriginal = preg_replace('/[\r\n"]+/', '', basename($archivo->getClientOriginalName()));
 
         try {
-            InstalacionEvidencia::create([
+            $evidencia = InstalacionEvidencia::create([
                 'cliente_id' => $cliente->id,
                 'pedido_entrega_id' => $juego['pedido_entrega_id'],
                 'venta_id' => $juego['venta_id'],
@@ -85,7 +85,7 @@ class PortalGarantiaController extends Controller
             Notificaciones::create([
                 'tipo' => 'evidencia_instalacion',
                 'juego' => $juego['juego'],
-                'mensaje' => "Nueva evidencia de instalación de {$cliente->nombre} para {$juego['juego']} ({$juego['tipo_cuenta']} {$juego['consola']}).",
+                'mensaje' => "Nueva evidencia #{$evidencia->id} de instalación de {$cliente->nombre} para {$juego['juego']} ({$juego['tipo_cuenta']} {$juego['consola']}).",
             ]);
         } catch (\Throwable) {
             // La evidencia no debe perderse si el módulo de notificaciones no está disponible.

@@ -46,6 +46,39 @@ watch(modoCliente, (modo) => {
     else { form.cliente_id = null; clienteSeleccionado.value = null; }
 });
 const seleccionarCliente = (cliente) => { form.cliente_id = cliente.id; clienteSeleccionado.value = cliente; busquedaCliente.value = ''; clientes.value = []; };
+const sinResultadosCliente = computed(() => modoCliente.value === 'existente' && !clienteSeleccionado.value && !buscando.value && busquedaCliente.value.trim().length >= 2 && !clientes.value.length);
+const CODIGOS_PAIS = ['1684', '1264', '1268', '1242', '1246', '1441', '1284', '1345', '1767', '1809', '1829', '1849', '1473', '1671', '1876', '1664', '1787', '1939', '1869', '1758', '1784', '1868', '1649', '1340', '998', '996', '995', '994', '993', '992', '977', '976', '975', '974', '973', '972', '971', '970', '968', '967', '966', '965', '964', '963', '962', '961', '960', '886', '880', '856', '855', '853', '852', '850', '692', '691', '690', '689', '688', '687', '686', '685', '683', '682', '681', '680', '679', '678', '677', '676', '675', '674', '673', '672', '670', '599', '598', '597', '595', '594', '593', '592', '591', '590', '509', '508', '507', '506', '505', '504', '503', '502', '501', '500', '423', '421', '420', '389', '387', '386', '385', '383', '382', '381', '380', '378', '377', '376', '375', '374', '373', '372', '371', '370', '359', '358', '357', '356', '355', '354', '353', '352', '351', '350', '299', '298', '297', '291', '290', '269', '268', '267', '266', '265', '264', '263', '262', '261', '260', '258', '257', '256', '255', '254', '253', '252', '251', '250', '249', '248', '246', '245', '244', '243', '242', '241', '240', '239', '238', '237', '236', '235', '234', '233', '232', '231', '230', '229', '228', '227', '226', '225', '224', '223', '222', '221', '220', '218', '216', '213', '212', '211', '98', '95', '94', '93', '92', '91', '90', '86', '84', '82', '81', '66', '65', '64', '63', '62', '61', '60', '58', '57', '56', '55', '54', '53', '52', '51', '49', '48', '47', '46', '45', '44', '43', '41', '40', '39', '36', '34', '33', '32', '31', '30', '27', '20', '7', '1'];
+const separarTelefono = (texto) => {
+    const limpio = texto.trim();
+    const internacional = /^\s*(\+|00)/.test(limpio);
+    let numeros = limpio.replace(/\D/g, '');
+    if (numeros.startsWith('00')) numeros = numeros.slice(2);
+
+    for (const codigo of CODIGOS_PAIS) {
+        if (!numeros.startsWith(codigo)) continue;
+        const telefono = numeros.slice(codigo.length);
+        const localValido = telefono.length >= 6 && telefono.length <= 12;
+        const colombiano = codigo === '57' && telefono.length === 10;
+        if (localValido && (internacional || colombiano || numeros.length > 10)) {
+            return { codigo_pais: codigo, telefono };
+        }
+    }
+
+    return { codigo_pais: '57', telefono: numeros };
+};
+const crearClienteDesdeBusqueda = () => {
+    const texto = busquedaCliente.value.trim();
+    const nuevo = { nombre: '', codigo_pais: '57', telefono: '', usuario: '', email: '', notas: '' };
+    if (/^\+?[\d\s\-().]+$/.test(texto) && /\d/.test(texto) && !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(texto)) {
+        Object.assign(nuevo, separarTelefono(texto));
+    } else {
+        nuevo.usuario = texto.replace(/^@+/, '');
+    }
+    form.cliente_nuevo = nuevo;
+    modoCliente.value = 'nuevo';
+    busquedaCliente.value = '';
+    clientes.value = [];
+};
 const clienteIncompleto = computed(() => clienteSeleccionado.value && (!clienteSeleccionado.value.nombre || (!clienteSeleccionado.value.email && !clienteSeleccionado.value.usuario)));
 const clienteActualizado = (cliente) => { clienteSeleccionado.value = { ...clienteSeleccionado.value, ...cliente }; };
 const subtotalDetalles = computed(() => form.detalles.reduce((total, item) => total + Math.max(0, (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)) - Number(item.descuento || 0)), 0));
@@ -110,6 +143,12 @@ const guardar = async () => {
                             <p v-if="buscando" class="mt-2 text-sm font-semibold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Buscando...</p>
                             <div v-if="clientes.length" class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-md">
                                 <button v-for="cliente in clientes" :key="cliente.id" type="button" class="block w-full border-b p-3 text-left text-sm hover:bg-gray-100" @click="seleccionarCliente(cliente)"><span class="block font-bold text-gray-900"><i class="fa-solid fa-user mr-2 text-blue-500"></i>{{ cliente.nombre || cliente.usuario || cliente.telefono }}</span><span class="mt-1 block text-gray-500">{{ cliente.telefono }} · {{ cliente.email || cliente.usuario }}</span></button>
+                            </div>
+                            <div v-if="sinResultadosCliente" class="mt-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4">
+                                <p class="text-sm font-semibold text-amber-900">No se encontró un cliente con “{{ busquedaCliente }}”.</p>
+                                <PrimaryButton type="button" class="mt-3 w-full justify-center sm:w-auto" @click="crearClienteDesdeBusqueda">
+                                    <i class="fa-solid fa-user-plus mr-2"></i>Nuevo cliente
+                                </PrimaryButton>
                             </div>
                             <InputError class="mt-2" :message="form.errors.cliente_id" />
                         </div>

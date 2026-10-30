@@ -14,6 +14,7 @@ use App\Http\Controllers\MovimientosController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PortalClienteController;
+use App\Http\Controllers\PortalCodigoController;
 use App\Http\Controllers\PortalGarantiaController;
 use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\ProductosJumpsellerController;
@@ -34,6 +35,10 @@ Route::get('/', function (Request $request) {
 
 Route::prefix('mi-cuenta')->middleware(['auth', EnsureClientePortal::class])->group(function () {
     Route::get('/', [PortalClienteController::class, 'index'])->name('portal.index');
+    Route::get('/pedidos', [PortalClienteController::class, 'pedidos'])->name('portal.pedidos.index');
+    Route::get('/pedidos/{pedido}', [PortalClienteController::class, 'pedido'])
+        ->whereNumber('pedido')
+        ->name('portal.pedidos.show');
     Route::get('/juegos/{origen}/{id}', [PortalClienteController::class, 'show'])
         ->whereIn('origen', ['pedido', 'historica'])
         ->whereNumber('id')
@@ -44,6 +49,10 @@ Route::prefix('mi-cuenta')->middleware(['auth', EnsureClientePortal::class])->gr
     Route::post('/juegos/{origen}/{id}/accesos', [PortalGarantiaController::class, 'acceso'])
         ->whereIn('origen', ['pedido', 'historica'])->whereNumber('id')
         ->name('portal.juegos.accesos.store');
+    Route::post('/juegos/{origen}/{id}/codigo', [PortalCodigoController::class, 'store'])
+        ->whereIn('origen', ['pedido', 'historica'])->whereNumber('id')
+        ->middleware('throttle:8,1')
+        ->name('portal.juegos.codigo');
     Route::get('/evidencias/{evidencia}/archivo', [PortalGarantiaController::class, 'archivo'])
         ->name('portal.garantias.archivo');
 });
@@ -81,6 +90,7 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');
+    Route::get('/productos-oferta-jumpseller/exportar', [ProductosJumpsellerController::class, 'exportarOfertas'])->name('productos-oferta-jumpseller.exportar');
     Route::delete('/productos-oferta-jumpseller/{id}/quitar-oferta', [ProductosJumpsellerController::class, 'quitarOferta'])->name('productos-oferta-jumpseller.quitar-oferta');
     Route::post('/productos-oferta-jumpseller/quitar-todas', [ProductosJumpsellerController::class, 'quitarTodasOfertas'])->name('productos-oferta-jumpseller.quitar-todas');
     Route::get('/productos-sincronizar', [ProductosJumpsellerController::class, 'sincronizarProductos'])->name('productos-sincronizar');

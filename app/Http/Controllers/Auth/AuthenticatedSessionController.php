@@ -34,6 +34,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($request->user()->hasRole('cliente')) {
+            $request->session()->put('portal_mostrar_oferta', true);
+        }
+
         $destino = $request->user()->hasRole('cliente')
             ? route('portal.index')
             : RouteServiceProvider::HOME;

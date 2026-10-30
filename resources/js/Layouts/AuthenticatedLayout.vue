@@ -280,6 +280,13 @@ const menuSections = computed(() => [
                 permission: 'integraciones.productos.ofertas',
             },
             {
+                label: 'Exportar ofertas JSON',
+                icon: '📥',
+                route: 'productos-oferta-jumpseller.exportar',
+                active: 'productos-oferta-jumpseller.exportar',
+                permission: 'integraciones.productos.ofertas',
+            },
+            {
                 label: 'Sincronizar productos',
                 icon: '🔃',
                 route: 'productos-sincronizar',

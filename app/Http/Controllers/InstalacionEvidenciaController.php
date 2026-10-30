@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InstalacionEvidencia;
+use App\Models\Notificaciones;
 use App\Models\PortalJuegoAcceso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,8 @@ class InstalacionEvidenciaController extends Controller
                 'revisado_at' => now(),
                 'motivo_rechazo' => null,
             ]);
+
+            $this->cerrarNotificacionEvidencia($evidencia);
         });
 
         return back()->with('success', 'Evidencia aprobada. La garantía del juego quedó activa.');
@@ -104,6 +107,8 @@ class InstalacionEvidenciaController extends Controller
                 'revisado_at' => now(),
                 'motivo_rechazo' => $datos['motivo_rechazo'],
             ]);
+
+            $this->cerrarNotificacionEvidencia($evidencia);
         });
 
         return back()->with('success', 'La evidencia fue rechazada y el cliente podrá enviarla nuevamente.');
@@ -118,6 +123,31 @@ class InstalacionEvidenciaController extends Controller
             'Content-Disposition' => 'inline; filename="evidencia-'.$evidencia->id.'"',
             'Cache-Control' => 'private, no-store, max-age=0',
         ]);
+    }
+
+    private function cerrarNotificacionEvidencia(InstalacionEvidencia $evidencia): void
+    {
+        $evidencia->loadMissing(['cliente:id,nombre', 'pedidoEntrega.detalle:id,juego', 'venta.correoJuego:id,juego']);
+        $juego = $evidencia->pedidoEntrega?->detalle?->juego ?: $evidencia->venta?->correoJuego?->juego;
+        $nombre = $evidencia->cliente?->nombre;
+        $nombreLike = $nombre ? '%'.addcslashes($nombre, '%_\\').'%' : null;
+
+        try {
+            Notificaciones::query()
+                ->where('tipo', 'evidencia_instalacion')
+                ->where(function ($consulta) use ($evidencia, $juego, $nombreLike) {
+                    $consulta->where('mensaje', 'like', "Nueva evidencia #{$evidencia->id} %");
+
+                    if ($juego && $nombreLike) {
+                        $consulta->orWhere(function ($grupo) use ($juego, $nombreLike) {
+                            $grupo->where('juego', $juego)->where('mensaje', 'like', $nombreLike);
+                        });
+                    }
+                })
+                ->delete();
+        } catch (\Throwable) {
+            // La revisión no debe fallar si el módulo de notificaciones no está disponible.
+        }
     }
 
     private function presentar(InstalacionEvidencia $evidencia): array

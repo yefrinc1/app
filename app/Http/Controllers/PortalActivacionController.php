@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\VerificarCorreoPortal;
 use App\Services\VincularVentasAntiguasService;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class PortalActivacionController extends Controller
     {
     }
 
-    public function show(string $token): Response
+    public function show(string $token): Response|RedirectResponse
     {
         $cliente = $this->clienteValido($token);
 
@@ -114,6 +115,7 @@ class PortalActivacionController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('portal_mostrar_oferta', true);
 
         try {
             // Los correos se envían después de confirmar la transacción.
@@ -134,13 +136,16 @@ class PortalActivacionController extends Controller
     {
         $cliente = Cliente::query()->where('portal_token_hash', hash('sha256', $token))->first();
 
-        abort_unless(
-            $cliente && ! $cliente->user_id && $cliente->portal_token_expires_at?->isFuture(),
-            404,
-            'Este enlace de activación no existe, ya fue utilizado o venció.'
-        );
+        if ($cliente && ! $cliente->user_id && $cliente->portal_token_expires_at?->isFuture()) {
+            return $cliente;
+        }
 
-        return $cliente;
+        throw new HttpResponseException(
+            redirect()->route('login')->with(
+                'status',
+                'Si ya activaste tu cuenta, inicia sesión con tu correo y contraseña.'
+            )
+        );
     }
 
     private function contactoProtegido(Cliente $cliente): string

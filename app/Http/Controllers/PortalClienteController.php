@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Juego;
 use App\Models\InstalacionEvidencia;
+use App\Models\Pedido;
+use App\Models\PedidoDetalle;
 use App\Models\PedidoEntrega;
 use App\Models\PortalJuegoAcceso;
 use App\Models\Ventas;
+use App\Services\PortalCodigoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -36,24 +39,66 @@ class PortalClienteController extends Controller
             ->latest()
             ->get();
 
-        $pedidos = $cliente->pedidos()
-            ->with('detalles:id,pedido_id,juego,tipo_cuenta,consola,cantidad,estado')
-            ->select(['id', 'codigo', 'total', 'moneda', 'estado', 'estado_financiero', 'estado_entrega', 'created_at'])
-            ->latest()
-            ->limit(20)
-            ->get();
-
         $juegos = $this->resumenJuegos($entregas, $ventas);
+        $oferta = $this->ofertaPortal($cliente->id, $juegos);
 
         return Inertia::render('PortalCliente/Index', [
             'cliente' => ['nombre' => $cliente->nombre, 'email' => $cliente->email],
             'juegos' => $juegos,
-            'pedidos' => $pedidos,
             'resumen' => [
                 'total' => $juegos->count(),
                 'pedidos' => $cliente->pedidos()->count(),
                 'historicos' => $ventas->count(),
+                'pendientes_garantia' => $juegos
+                    ->reject(fn (array $juego) => $juego['saltar_evidencia'])
+                    ->whereIn('garantia_estado', ['pendiente', 'requiere_correccion'])
+                    ->count(),
             ],
+            'oferta' => $oferta,
+            'mostrar_oferta' => (bool) $oferta && $request->session()->pull('portal_mostrar_oferta', false),
+        ]);
+    }
+
+    public function pedidos(Request $request): Response
+    {
+        $cliente = $request->user()->cliente()->firstOrFail();
+
+        $pedidos = $cliente->pedidos()
+            ->with(['detalles:id,pedido_id,juego,tipo_cuenta,consola,cantidad,cantidad_generada', 'detalles.juegoCatalogo'])
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        $imagenes = $this->imagenes(
+            $pedidos->getCollection()->flatMap(fn (Pedido $pedido) => $pedido->detalles->pluck('juego'))->filter()->unique()->values()
+        );
+
+        $pedidos->through(fn (Pedido $pedido) => $this->mapaPedido($pedido, false, $imagenes));
+
+        return Inertia::render('PortalCliente/Pedidos', [
+            'pedidos' => $pedidos,
+        ]);
+    }
+
+    public function pedido(Request $request, int $pedido)
+    {
+        $cliente = $request->user()->cliente()->firstOrFail();
+
+        $pedido = $cliente->pedidos()
+            ->with([
+                'detalles.juegoCatalogo',
+                'detalles.entregas' => fn ($query) => $query->where('estado', '!=', 'anulada')->orderBy('id'),
+            ])
+            ->findOrFail($pedido);
+
+        $mapa = $this->mapaPedido($pedido, true, $this->imagenes($pedido->detalles->pluck('juego')->filter()->unique()->values()));
+
+        if (! $mapa['puede_ver_detalle']) {
+            return redirect()->route('portal.pedidos.index');
+        }
+
+        return Inertia::render('PortalCliente/PedidoShow', [
+            'pedido' => $mapa,
         ]);
     }
 
@@ -69,9 +114,21 @@ class PortalClienteController extends Controller
 
         $this->registrarAcceso($request, $cliente->id, $origen, $id, 'ver_datos');
 
+        $garantia = $this->garantia($cliente->id, $origen, $id, $juego);
+        $verificacion = app(PortalCodigoService::class)->estado(
+            $cliente->id,
+            $origen,
+            $id,
+            $garantia['estado'],
+            $garantia['saltar_evidencia'],
+        );
+        $juego['verificacion'] = $verificacion;
+        $juego['codigo'] = $verificacion['visible'];
+        $juego['codigo_disponible'] = (bool) $verificacion['visible'];
+
         return Inertia::render('PortalCliente/Show', [
             'juego' => $juego,
-            'garantia' => $this->garantia($cliente->id, $origen, $id, $juego),
+            'garantia' => $garantia,
             'recomendaciones' => [
                 'No modifiques el correo, contraseña ni datos de la cuenta para conservar la garantía.',
                 'No inicies sesión como invitado. Agrega la cuenta como un usuario normal en la consola.',
@@ -85,31 +142,43 @@ class PortalClienteController extends Controller
         $nombres = $entregas->pluck('detalle.juego')->merge($ventas->pluck('correoJuego.juego'))->filter()->unique();
         $imagenes = $this->imagenes($nombres);
 
-        $actuales = $entregas->map(fn ($entrega) => [
-            'id' => $entrega->id,
-            'origen' => 'pedido',
-            'juego' => $entrega->detalle?->juego ?: $entrega->correoJuego?->juego,
-            'imagen' => $this->imagenDe($imagenes, $entrega->detalle?->juego ?: $entrega->correoJuego?->juego),
-            'tipo_cuenta' => $entrega->detalle?->tipo_cuenta,
-            'consola' => $entrega->detalle?->consola,
-            'pedido' => $entrega->detalle?->pedido?->codigo,
-            'fecha' => optional($entrega->entregado_at ?: $entrega->asignado_at)->toIso8601String(),
-            'estado' => $entrega->estado,
-            'garantia_estado' => $this->estadoGarantia($entrega->ultimaEvidenciaInstalacion?->estado),
-        ]);
+        $actuales = $entregas->map(function ($entrega) use ($imagenes) {
+            $estado = $this->estadoGarantia($entrega->ultimaEvidenciaInstalacion?->estado);
+            $fecha = $entrega->entregado_at ?: $entrega->asignado_at;
 
-        $historicos = $ventas->map(fn ($venta) => [
-            'id' => $venta->id,
-            'origen' => 'historica',
-            'juego' => $venta->correoJuego?->juego ?: 'Juego digital',
-            'imagen' => $this->imagenDe($imagenes, $venta->correoJuego?->juego),
-            'tipo_cuenta' => $venta->tipo_cuenta,
-            'consola' => $venta->consola,
-            'pedido' => null,
-            'fecha' => $venta->created_at?->toIso8601String(),
-            'estado' => 'entregada',
-            'garantia_estado' => $this->estadoGarantia($venta->ultimaEvidenciaInstalacion?->estado),
-        ]);
+            return [
+                'id' => $entrega->id,
+                'origen' => 'pedido',
+                'juego' => $entrega->detalle?->juego ?: $entrega->correoJuego?->juego,
+                'imagen' => $this->imagenDe($imagenes, $entrega->detalle?->juego ?: $entrega->correoJuego?->juego),
+                'tipo_cuenta' => $entrega->detalle?->tipo_cuenta,
+                'consola' => $entrega->detalle?->consola,
+                'pedido' => $entrega->detalle?->pedido?->codigo,
+                'fecha' => optional($fecha)->toIso8601String(),
+                'estado' => $entrega->estado,
+                'garantia_estado' => $estado,
+                'saltar_evidencia' => false,
+            ];
+        });
+
+        $historicos = $ventas->map(function ($venta) use ($imagenes) {
+            $estado = $this->estadoGarantia($venta->ultimaEvidenciaInstalacion?->estado);
+            $saltar = $this->debeSaltarEvidencia('historica', $estado);
+
+            return [
+                'id' => $venta->id,
+                'origen' => 'historica',
+                'juego' => $venta->correoJuego?->juego ?: 'Juego digital',
+                'imagen' => $this->imagenDe($imagenes, $venta->correoJuego?->juego),
+                'tipo_cuenta' => $venta->tipo_cuenta,
+                'consola' => $venta->consola,
+                'pedido' => null,
+                'fecha' => $venta->created_at?->toIso8601String(),
+                'estado' => 'entregada',
+                'garantia_estado' => $saltar ? 'antigua' : $estado,
+                'saltar_evidencia' => $saltar,
+            ];
+        });
 
         return $actuales->concat($historicos)->sortByDesc('fecha')->values();
     }
@@ -132,6 +201,7 @@ class PortalClienteController extends Controller
             'codigo' => $entrega->codigoVerificacion?->codigo,
             'codigo_disponible' => (bool) $entrega->codigoVerificacion?->codigo,
             'tutorial' => $this->tutorial($entrega->detalle?->tipo_cuenta, $entrega->detalle?->consola),
+            'tutorial_candado' => $this->tutorialCandado($entrega->detalle?->tipo_cuenta, $entrega->detalle?->consola),
         ];
     }
 
@@ -149,6 +219,7 @@ class PortalClienteController extends Controller
             'usuario' => $venta->correoJuego?->correo, 'contrasena' => $venta->correoJuego?->contrasena,
             'codigo' => null, 'codigo_disponible' => false,
             'tutorial' => $this->tutorial($venta->tipo_cuenta, $venta->consola),
+            'tutorial_candado' => $this->tutorialCandado($venta->tipo_cuenta, $venta->consola),
         ];
     }
 
@@ -168,10 +239,201 @@ class PortalClienteController extends Controller
         return $nombre ? Juego::query()->whereRaw('LOWER(nombre) = ?', [Str::lower(trim($nombre))])->value('url_imagen') : null;
     }
 
+    private function ofertaPortal(int $clienteId, Collection $juegos): ?array
+    {
+        if (! config('portal_clientes.oferta.activa')) {
+            return null;
+        }
+
+        $consolas = $this->consolasCliente($clienteId, $juegos);
+        $clave = $this->claveOferta($clienteId, $juegos, $consolas);
+        $campana = config("portal_clientes.oferta.{$clave}");
+        $items = collect($campana['juegos'] ?? [])->filter(fn ($item) => filled($item['nombre'] ?? null));
+
+        if ($consolas !== []) {
+            $items = $items->filter(function (array $item) use ($consolas) {
+                $consolasItem = $this->extraerConsolas($item['consola'] ?? null);
+
+                return $consolasItem === [] || count(array_intersect($consolasItem, $consolas)) > 0;
+            });
+        }
+
+        if ($clave === 'varios') {
+            $sinComprados = $items->reject(fn (array $item) => $this->clienteTieneJuego($clienteId, $juegos, $item['nombre']));
+            $items = ($sinComprados->isNotEmpty() ? $sinComprados : $items)->take(6);
+        }
+
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        $imagenes = $this->imagenes($items->pluck('nombre')->unique()->values());
+        $subtitulo = $clave !== 'varios' && count($consolas) === 1
+            ? 'Precios para '.$consolas[0].'.'
+            : ($campana['subtitulo'] ?? null);
+
+        return [
+            'clave' => $clave,
+            'presentacion' => $campana['presentacion'] ?? 'cartas',
+            'titulo' => $campana['titulo'] ?? 'Oferta',
+            'subtitulo' => $subtitulo,
+            'whatsapp' => preg_replace('/\D/', '', (string) config('portal_clientes.oferta.whatsapp')),
+            'url_tienda' => config('portal_clientes.oferta.url_tienda'),
+            'juegos' => $items->map(function (array $item) use ($imagenes) {
+                $precio = (int) ($item['precio'] ?? 0);
+                $comparacion = (int) ($item['precio_comparacion'] ?? 0);
+
+                return [
+                    'nombre' => $item['nombre'],
+                    'imagen' => $this->imagenDe($imagenes, $item['nombre']),
+                    'tipo' => $item['tipo'] ?? 'Primaria',
+                    'consola' => $item['consola'] ?? null,
+                    'precio' => $precio,
+                    'precio_comparacion' => $comparacion,
+                    'descuento' => $comparacion > $precio && $comparacion > 0
+                        ? (int) round((1 - ($precio / $comparacion)) * 100)
+                        : 0,
+                    'url' => $item['url'] ?? null,
+                ];
+            })->values(),
+        ];
+    }
+
+    private function consolasCliente(int $clienteId, Collection $juegos): array
+    {
+        $consolas = collect();
+
+        foreach ($juegos as $juego) {
+            $consolas = $consolas->merge($this->extraerConsolas($juego['consola'] ?? null));
+        }
+
+        PedidoDetalle::query()
+            ->whereHas('pedido', fn ($query) => $query->where('cliente_id', $clienteId)->whereNotIn('estado', ['cancelado', 'reembolsado']))
+            ->pluck('consola')
+            ->each(function (?string $consola) use (&$consolas) {
+                $consolas = $consolas->merge($this->extraerConsolas($consola));
+            });
+
+        return $consolas->unique()->values()->all();
+    }
+
+    private function extraerConsolas(?string $consola): array
+    {
+        $texto = Str::upper((string) $consola);
+        $encontradas = [];
+
+        if (str_contains($texto, 'PS5')) {
+            $encontradas[] = 'PS5';
+        }
+
+        if (str_contains($texto, 'PS4')) {
+            $encontradas[] = 'PS4';
+        }
+
+        return $encontradas;
+    }
+
+    private function claveOferta(int $clienteId, Collection $juegos, array $consolas): string
+    {
+        if (in_array('PS5', $consolas, true) && ! $this->comproGtaVi($clienteId, $juegos)) {
+            return 'gta';
+        }
+
+        return $this->comproFc27($clienteId, $juegos) ? 'varios' : 'fc27';
+    }
+
+    private function comproGtaVi(int $clienteId, Collection $juegos): bool
+    {
+        if ($juegos->contains(fn (array $juego) => $this->esGtaVi($juego['juego'] ?? null))) {
+            return true;
+        }
+
+        return PedidoDetalle::query()
+            ->whereHas('pedido', fn ($query) => $query->where('cliente_id', $clienteId)->whereNotIn('estado', ['cancelado', 'reembolsado']))
+            ->pluck('juego')
+            ->contains(fn (?string $nombre) => $this->esGtaVi($nombre));
+    }
+
+    private function esGtaVi(?string $nombre): bool
+    {
+        $nombre = Str::lower(trim((string) $nombre));
+        if ($nombre === '') {
+            return false;
+        }
+
+        return str_contains($nombre, 'grand theft auto vi')
+            || str_contains($nombre, 'gta vi')
+            || (bool) preg_match('/\bgta\s*6\b/', $nombre);
+    }
+
+    private function comproFc27(int $clienteId, Collection $juegos): bool
+    {
+        if ($juegos->contains(fn (array $juego) => $this->esFc27($juego['juego'] ?? null))) {
+            return true;
+        }
+
+        return PedidoDetalle::query()
+            ->whereHas('pedido', fn ($query) => $query->where('cliente_id', $clienteId)->whereNotIn('estado', ['cancelado', 'reembolsado']))
+            ->pluck('juego')
+            ->contains(fn (?string $nombre) => $this->esFc27($nombre));
+    }
+
+    private function esFc27(?string $nombre): bool
+    {
+        $nombre = Str::lower(trim((string) $nombre));
+        if ($nombre === '') {
+            return false;
+        }
+
+        return str_contains($nombre, 'ea sports fc 27')
+            || str_contains($nombre, 'fc 27')
+            || str_contains($nombre, 'fc27')
+            || (bool) preg_match('/\bfc\s*27\b/', $nombre);
+    }
+
+    private function clienteTieneJuego(int $clienteId, Collection $juegos, string $nombre): bool
+    {
+        if ($juegos->contains(fn (array $juego) => $this->nombresJuegoCoinciden($juego['juego'] ?? null, $nombre))) {
+            return true;
+        }
+
+        return PedidoDetalle::query()
+            ->whereHas('pedido', fn ($query) => $query->where('cliente_id', $clienteId)->whereNotIn('estado', ['cancelado', 'reembolsado']))
+            ->pluck('juego')
+            ->contains(fn (?string $juego) => $this->nombresJuegoCoinciden($juego, $nombre));
+    }
+
+    private function nombresJuegoCoinciden(?string $a, ?string $b): bool
+    {
+        $a = $this->normalizarNombreJuego($a);
+        $b = $this->normalizarNombreJuego($b);
+
+        if ($a === '' || $b === '') {
+            return false;
+        }
+
+        return $a === $b || str_contains($a, $b) || str_contains($b, $a);
+    }
+
+    private function normalizarNombreJuego(?string $nombre): string
+    {
+        $nombre = Str::lower(trim((string) $nombre));
+        $nombre = str_replace(['’', '`'], "'", $nombre);
+
+        return preg_replace('/\s+/', ' ', $nombre) ?: '';
+    }
+
     private function tutorial(?string $tipo, ?string $consola): ?string
     {
         $clave = Str::lower((string) $tipo).'_'.Str::lower((string) $consola);
-        return config("portal_clientes.tutoriales.{$clave}");
+        return config("portal_clientes.tutoriales.{$clave}") ?: null;
+    }
+
+    private function tutorialCandado(?string $tipo, ?string $consola): ?string
+    {
+        $clave = Str::lower((string) $tipo).'_'.Str::lower((string) $consola);
+
+        return config("portal_clientes.tutoriales_candado.{$clave}") ?: $this->tutorial($tipo, $consola);
     }
 
     private function garantia(int $clienteId, string $origen, int $id, array $juego): array
@@ -186,10 +448,12 @@ class PortalClienteController extends Controller
         $ultima = $evidencias->first();
         $esPrimaria = Str::lower((string) $juego['tipo_cuenta']) === 'primaria';
         $estado = $this->estadoGarantia($ultima?->estado);
+        $saltarEvidencia = $this->debeSaltarEvidencia($origen, $estado);
 
         return [
-            'estado' => $estado,
-            'puede_enviar' => ! in_array($estado, ['en_revision', 'activa'], true),
+            'estado' => $saltarEvidencia ? 'antigua' : $estado,
+            'saltar_evidencia' => $saltarEvidencia,
+            'puede_enviar' => ! $saltarEvidencia && ! in_array($estado, ['en_revision', 'activa'], true),
             'tipo_requerido' => $esPrimaria ? 'foto' : 'video',
             'accept' => $esPrimaria ? 'image/jpeg,image/png,image/webp' : 'video/mp4,video/quicktime,video/webm',
             'max_mb' => $esPrimaria ? 10 : 50,
@@ -217,6 +481,11 @@ class PortalClienteController extends Controller
         };
     }
 
+    private function debeSaltarEvidencia(string $origen, string $estadoGarantia): bool
+    {
+        return $origen === 'historica' && ! in_array($estadoGarantia, ['activa', 'en_revision', 'requiere_correccion'], true);
+    }
+
     private function instruccionesEvidencia(?string $tipo, ?string $consola): array
     {
         $esPrimaria = Str::lower((string) $tipo) === 'primaria';
@@ -235,13 +504,119 @@ class PortalClienteController extends Controller
         }
 
         return [
-            'Agrega el usuario como nuevo en la consola, nunca como invitado, y sigue todos los pasos del video de instalación.',
+            'Sigue el tutorial y agrega el usuario como nuevo, nunca como invitado.',
             $esPs5
-                ? 'PS5: en el minuto 1:20 del tutorial se muestra cómo desactivar Uso compartido de consola y juego offline para la cuenta entregada.'
-                : 'PS4: en el minuto 0:40 del tutorial se muestra cómo desactivar la cuenta entregada como PS4 principal.',
-            'Graba con otro dispositivo un video continuo y sin cortes mientras realizas la desactivación. Muestra la pantalla antes, la acción de desactivar y el estado desactivado al finalizar. No subas solo una foto ni un video del tutorial.',
-            'Sube aquí ese video para que MRJUEGOZ pueda revisar este paso fundamental y activar la garantía. No modifiques el correo, contraseña ni seguridad de la cuenta.',
+                ? 'En el minuto 1:20 desactiva Uso compartido de consola y juego offline.'
+                : 'En el minuto 0:40 desactiva la cuenta como PS4 principal.',
+            'Graba un video propio, continuo y sin cortes: pantalla antes, desactivación y estado final. No subas una foto ni el video del tutorial.',
         ];
+    }
+
+    private function mapaPedido(Pedido $pedido, bool $conCuentas = false, ?Collection $imagenes = null): array
+    {
+        $estado = $this->estadoPedidoCliente($pedido);
+        $reembolsadoTotal = in_array($estado['clave'], ['reembolsado'], true);
+        $reembolsoParcial = $estado['clave'] === 'reembolso_parcial';
+        $imagenes ??= $this->imagenes($pedido->detalles->pluck('juego')->filter()->unique()->values());
+
+        return [
+            'id' => $pedido->id,
+            'codigo' => $pedido->codigo,
+            'fecha' => $pedido->created_at?->toIso8601String(),
+            'total' => $this->formatoDinero($pedido),
+            'estado' => $estado,
+            'entrega' => $this->estadoEntregaCliente($pedido),
+            'en_proceso' => in_array($estado['clave'], ['proceso', 'pago', 'parcial'], true),
+            'puede_ver_detalle' => $reembolsadoTotal || $reembolsoParcial || $this->pedidoTieneJuegoGenerado($pedido),
+            'reembolsado' => $reembolsadoTotal,
+            'reembolso_parcial' => $reembolsoParcial,
+            'mensaje_reembolso' => $reembolsadoTotal
+                ? 'Este pedido fue reembolsado. Las cuentas de estos juegos ya no están disponibles para instalar.'
+                : ($reembolsoParcial
+                    ? 'Este pedido tiene un reembolso parcial. Algunos juegos de la compra ya no están disponibles.'
+                    : null),
+            'juegos' => $pedido->detalles->map(fn (PedidoDetalle $detalle) => $this->mapaDetallePedido($detalle, $conCuentas && ! $reembolsadoTotal, $imagenes))->values(),
+        ];
+    }
+
+    private function mapaDetallePedido(PedidoDetalle $detalle, bool $conCuentas, Collection $imagenes): array
+    {
+        $entregas = $conCuentas
+            ? $detalle->entregas->where('estado', '!=', 'anulada')->values()
+            : collect();
+
+        return [
+            'id' => $detalle->id,
+            'juego' => $detalle->juego,
+            'imagen' => $detalle->juegoCatalogo?->url_imagen ?: $this->imagenDe($imagenes, $detalle->juego),
+            'tipo_cuenta' => $detalle->tipo_cuenta,
+            'consola' => $detalle->consola,
+            'cantidad' => $detalle->cantidad,
+            'cuentas' => $entregas->map(fn (PedidoEntrega $entrega) => [
+                'id' => $entrega->id,
+                'estado' => $entrega->estado === 'entregada' ? 'Entregada' : 'Lista para instalar',
+                'url' => route('portal.juegos.show', ['origen' => 'pedido', 'id' => $entrega->id]),
+            ])->values(),
+            'pendientes' => $conCuentas ? max(0, (int) $detalle->cantidad - $entregas->count()) : 0,
+        ];
+    }
+
+    private function pedidoTieneJuegoGenerado(Pedido $pedido): bool
+    {
+        if (in_array($pedido->estado_entrega, ['parcial', 'completado'], true)) {
+            return true;
+        }
+
+        return $pedido->detalles->contains(fn (PedidoDetalle $detalle) => (int) $detalle->cantidad_generada > 0);
+    }
+
+    private function estadoPedidoCliente(Pedido $pedido): array
+    {
+        if ($pedido->estado === 'cancelado') {
+            return ['texto' => 'Cancelado', 'clave' => 'cancelado'];
+        }
+
+        if ($pedido->estado === 'reembolsado' || $pedido->estado_financiero === 'reembolsado') {
+            return ['texto' => 'Reembolsado', 'clave' => 'reembolsado'];
+        }
+
+        if ($pedido->estado_financiero === 'reembolso_parcial') {
+            return ['texto' => 'Reembolso parcial', 'clave' => 'reembolso_parcial'];
+        }
+
+        if ($pedido->estado === 'completado' || $pedido->estado_entrega === 'completado') {
+            return ['texto' => 'Completado', 'clave' => 'completado'];
+        }
+
+        if ($pedido->estado_entrega === 'parcial') {
+            return ['texto' => 'Entrega parcial', 'clave' => 'parcial'];
+        }
+
+        if (in_array($pedido->estado_financiero, ['pendiente', 'pago_parcial'], true)) {
+            return ['texto' => 'En proceso de pago', 'clave' => 'pago'];
+        }
+
+        return ['texto' => 'En proceso', 'clave' => 'proceso'];
+    }
+
+    private function estadoEntregaCliente(Pedido $pedido): array
+    {
+        return match ($pedido->estado_entrega) {
+            'completado' => ['texto' => 'Entregado', 'clave' => 'completado'],
+            'parcial' => ['texto' => 'Entrega parcial', 'clave' => 'parcial'],
+            default => ['texto' => 'Pendiente de entrega', 'clave' => 'pendiente'],
+        };
+    }
+
+    private function formatoDinero(Pedido $pedido): string
+    {
+        $total = (float) $pedido->total;
+
+        if ($pedido->moneda === 'COP') {
+            return '$'.number_format($total, 0, ',', '.');
+        }
+
+        return number_format($total, 2, ',', '.').' '.$pedido->moneda;
     }
 
     private function registrarAcceso(Request $request, int $clienteId, string $origen, int $id, string $accion): void
