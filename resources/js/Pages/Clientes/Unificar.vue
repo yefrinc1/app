@@ -28,7 +28,7 @@ const campos = [
     { nombre: 'usuario', etiqueta: 'Instagram' },
     { nombre: 'email', etiqueta: 'Correo de contacto' },
 ];
-const tablas = { pedidos: 'Pedidos', ventas: 'Ventas', instalacion_evidencias: 'Evidencias de garantía', portal_juego_accesos: 'Accesos a juegos' };
+const tablas = { pedidos: 'Pedidos', ventas: 'Ventas', instalacion_evidencias: 'Evidencias de garantía', portal_juego_accesos: 'Accesos a juegos', portal_codigo_solicitudes: 'Códigos del portal' };
 const form = useForm({
     principal_id: null, duplicado_id: null, firma: '',
     selecciones: { nombre: 'principal', telefono: 'principal', usuario: 'principal', email: 'principal' },
@@ -184,9 +184,14 @@ const fecha = (valor) => valor ? new Date(valor).toLocaleString('es-CO') : '';
                             <p class="mt-2 whitespace-pre-wrap break-words">{{ previa.principal.notas }}</p>
                             <p class="mt-2 whitespace-pre-wrap break-words">{{ previa.duplicado.notas }}</p>
                         </div>
+                        <p class="text-sm font-semibold text-gray-700">Así quedará el cliente conservado</p>
                         <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-                            <div v-for="(cantidad, tabla) in previa.transferencias" :key="tabla" class="rounded-lg bg-gray-50 p-3">
-                                <p class="text-sm text-gray-600">{{ tablas[tabla] }}</p><p class="text-xl font-bold">{{ cantidad }}</p>
+                            <div v-for="(cantidad, tabla) in (previa.totales || previa.transferencias)" :key="tabla" class="rounded-lg bg-gray-50 p-3">
+                                <p class="text-sm text-gray-600">{{ tablas[tabla] }}</p>
+                                <p class="text-xl font-bold">{{ cantidad }}</p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Conservado {{ previa.existentes?.[tabla] ?? 0 }} + duplicado {{ previa.transferencias?.[tabla] ?? 0 }}
+                                </p>
                             </div>
                         </div>
                         <FormTextarea id="motivo-unificacion" v-model="form.motivo" label="Motivo de la unificación" placeholder="Compró antes con teléfono y después con Instagram." :rows="3" />

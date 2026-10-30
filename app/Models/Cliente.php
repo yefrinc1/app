@@ -79,7 +79,8 @@ class Cliente extends Model
                 ->orWhereRaw("email LIKE ? ESCAPE '!'", [$patron($termino)]);
 
             if ($usuario !== null) {
-                $consulta->orWhereRaw("usuario LIKE ? ESCAPE '!'", [$patron($usuario)]);
+                $consulta->orWhereRaw("usuario LIKE ? ESCAPE '!'", [$patron($usuario)])
+                    ->orWhereRaw("REPLACE(LOWER(COALESCE(usuario, '')), '@', '') LIKE ? ESCAPE '!'", [$patron($usuario)]);
             }
 
             if ($numeros !== '') {

@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class ClienteUnificacionService
 {
-    private const TABLAS = ['pedidos', 'ventas', 'instalacion_evidencias', 'portal_juego_accesos'];
+    private const TABLAS = ['pedidos', 'ventas', 'instalacion_evidencias', 'portal_juego_accesos', 'portal_codigo_solicitudes'];
     private const CAMPOS = ['nombre', 'codigo_pais', 'telefono', 'usuario', 'email', 'notas'];
 
     public function vistaPrevia(int $principalId, int $duplicadoId): array
@@ -48,11 +48,38 @@ class ClienteUnificacionService
     {
         $conteos = [];
         foreach (self::TABLAS as $tabla) {
-            $conteos[$tabla] = Schema::hasTable($tabla)
-                ? DB::table($tabla)->where('cliente_id', $id)->count()
-                : 0;
+            $conteos[$tabla] = $this->consultaRelacionCliente($tabla, $id)->count();
         }
         return $conteos;
+    }
+
+    private function consultaRelacionCliente(string $tabla, int $clienteId)
+    {
+        if (! Schema::hasTable($tabla)) {
+            return DB::table('clientes')->whereRaw('0 = 1');
+        }
+
+        if ($tabla !== 'ventas') {
+            return DB::table($tabla)->where('cliente_id', $clienteId);
+        }
+
+        $usuario = Cliente::normalizarUsuario(
+            Cliente::query()->whereKey($clienteId)->value('usuario')
+        );
+
+        return DB::table('ventas')->where(function ($consulta) use ($clienteId, $usuario) {
+            $consulta->where('cliente_id', $clienteId);
+
+            if ($usuario) {
+                $consulta->orWhere(function ($texto) use ($usuario) {
+                    $texto->whereNull('cliente_id')
+                        ->whereRaw(
+                            'LOWER(REPLACE(REPLACE(COALESCE(cliente, ""), " ", ""), "@", "")) = ?',
+                            [$usuario]
+                        );
+                });
+            }
+        });
     }
 
     private function datos(Cliente $cliente): array
@@ -73,10 +100,19 @@ class ClienteUnificacionService
 
     private function resumen(Cliente $principal, Cliente $duplicado): array
     {
+        $existentes = $this->conteos($principal->id);
+        $transferencias = $this->conteos($duplicado->id);
+        $totales = [];
+        foreach (self::TABLAS as $tabla) {
+            $totales[$tabla] = (int) ($existentes[$tabla] ?? 0) + (int) ($transferencias[$tabla] ?? 0);
+        }
+
         return [
             'principal' => $this->datos($principal),
             'duplicado' => $this->datos($duplicado),
-            'transferencias' => $this->conteos($duplicado->id),
+            'existentes' => $existentes,
+            'transferencias' => $transferencias,
+            'totales' => $totales,
             'firma' => $this->firma($principal, $duplicado),
             'correo_acceso' => ($principal->user_id ? $principal : $duplicado)->cuentaPortal?->email,
         ];
@@ -141,9 +177,8 @@ class ClienteUnificacionService
             $antes = ['principal' => $this->datos($principal), 'duplicado' => $this->datos($duplicado)];
             $transferidas = [];
             foreach (self::TABLAS as $tabla) {
-                $transferidas[$tabla] = Schema::hasTable($tabla)
-                    ? DB::table($tabla)->where('cliente_id', $duplicado->id)->update(['cliente_id' => $principal->id])
-                    : 0;
+                $transferidas[$tabla] = $this->consultaRelacionCliente($tabla, $duplicado->id)
+                    ->update(['cliente_id' => $principal->id]);
             }
 
             $userId = $principal->user_id ?: $duplicado->user_id;

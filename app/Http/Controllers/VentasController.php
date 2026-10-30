@@ -54,8 +54,16 @@ class VentasController extends Controller
                     });
                 })
                 ->when($cliente, function ($query, $cliente) {
-                    $clienteSinEspacios = str_replace(' ', '', $cliente);
-                    return $query->whereRaw("REGEXP_REPLACE(cliente, '[[:space:]]', '') LIKE ?", ["%$clienteSinEspacios%"]);
+                    $termino = Cliente::normalizarUsuario($cliente)
+                        ?: preg_replace('/\s+/', '', (string) $cliente);
+                    $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower((string) $termino, 'UTF-8')).'%';
+
+                    return $query->where(function ($consulta) use ($cliente, $like) {
+                        $consulta->whereRaw(
+                            "LOWER(REPLACE(REPLACE(COALESCE(cliente, ''), ' ', ''), '@', '')) LIKE ? ESCAPE '!'",
+                            [$like]
+                        )->orWhereHas('cliente', fn ($relacion) => $relacion->buscar($cliente));
+                    });
                 })
                 ->when($correo, function ($query, $correo) {
                     return $query->whereHas('correoJuego', function ($q) use ($correo) {
