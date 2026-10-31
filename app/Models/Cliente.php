@@ -80,7 +80,13 @@ class Cliente extends Model
 
             if ($usuario !== null) {
                 $consulta->orWhereRaw("usuario LIKE ? ESCAPE '!'", [$patron($usuario)])
-                    ->orWhereRaw("REPLACE(LOWER(COALESCE(usuario, '')), '@', '') LIKE ? ESCAPE '!'", [$patron($usuario)]);
+                    ->orWhereRaw("REPLACE(LOWER(COALESCE(usuario, '')), '@', '') LIKE ? ESCAPE '!'", [$patron($usuario)])
+                    ->orWhereHas('ventas', function ($ventas) use ($usuario, $patron) {
+                        $ventas->whereRaw(
+                            "LOWER(REPLACE(REPLACE(COALESCE(cliente, ''), ' ', ''), '@', '')) LIKE ? ESCAPE '!'",
+                            [$patron($usuario)]
+                        );
+                    });
             }
 
             if ($numeros !== '') {

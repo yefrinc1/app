@@ -458,9 +458,10 @@ class VentasController extends Controller
 
         // Eliminar espacios, +, -, paréntesis, etc.
         $soloNumeros = preg_replace('/\D/', '', $cliente);
+        $pareceTelefono = (bool) preg_match('/^\+?[0-9\s().-]+$/', $cliente);
 
-        // Si tiene entre 7 y 15 dígitos, se considera teléfono
-        if (strlen($soloNumeros) >= 7 && strlen($soloNumeros) <= 15) {
+        // Solo es teléfono si el texto entero es un número, no un Instagram con dígitos.
+        if ($pareceTelefono && strlen($soloNumeros) >= 7 && strlen($soloNumeros) <= 15) {
 
             $codigoPais = '57';
             $telefono = $soloNumeros;
@@ -479,7 +480,7 @@ class VentasController extends Controller
 
         // Si no es teléfono, se considera usuario de Instagram
         return Cliente::firstOrCreate([
-            'usuario' => strtolower($cliente),
+            'usuario' => Cliente::normalizarUsuario($cliente),
         ]);
     }
 }
