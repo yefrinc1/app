@@ -412,7 +412,7 @@ const enviarEvidencia = async () => {
                 <p v-else class="px-5 pb-2 text-sm text-amber-200">No hay video cargado para esta consola. Escribe a soporte MRJUEGOZ.</p>
                 <div v-if="verificacion.es_primaria" class="border-t border-white/10 p-5">
                     <p class="mb-3 text-sm font-bold text-white">3. Cuando PlayStation pida el código</p>
-                    <div v-if="juego.codigo && !verificacion.es_instalacion" class="rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
+                    <div v-if="juego.codigo && !verificacion.es_instalacion && !verificacion.puede_solicitar" class="rounded-xl border border-white/10 bg-slate-950 px-4 py-3">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Código para desbloquear</p>

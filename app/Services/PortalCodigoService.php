@@ -18,17 +18,18 @@ class PortalCodigoService
     {
         $cuenta = $this->cuenta($clienteId, $origen, $id);
         $ultimaCliente = $this->ultimaSolicitudCliente($clienteId, $cuenta);
+        $yaPidioHoy = $this->solicitudesHoy($clienteId, $cuenta) > 0;
+        $solicitudHoy = $yaPidioHoy ? $ultimaCliente : null;
         $mostrarInstalacion = $estadoGarantia !== 'activa' && ! $saltarEvidencia && ! $ultimaCliente && filled($cuenta['codigo_instalacion']);
         $hayStock = $this->hayStock($cuenta['correo_juego_id']);
-        $yaPidioHoy = $this->solicitudesHoy($clienteId, $cuenta) > 0;
         $esPrimaria = $this->esPrimaria($cuenta);
-        $visible = $mostrarInstalacion ? $cuenta['codigo_instalacion'] : $ultimaCliente?->codigo;
+        $visible = $mostrarInstalacion ? $cuenta['codigo_instalacion'] : $solicitudHoy?->codigo;
 
         return [
             'visible' => $visible,
             'es_instalacion' => $mostrarInstalacion,
             'es_primaria' => $esPrimaria,
-            'solicitado_at' => $ultimaCliente?->created_at?->toIso8601String(),
+            'solicitado_at' => $solicitudHoy?->created_at?->toIso8601String(),
             'puede_solicitar' => $esPrimaria && (bool) $cuenta['correo_juego_id'] && $hayStock && ! $yaPidioHoy,
             'sin_stock' => $esPrimaria && (bool) $cuenta['correo_juego_id'] && ! $hayStock,
             'tiene_correo' => (bool) $cuenta['correo_juego_id'],
