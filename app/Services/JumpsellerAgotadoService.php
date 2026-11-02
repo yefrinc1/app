@@ -15,7 +15,8 @@ class JumpsellerAgotadoService
 
     /**
      * Si ya no hay inventario para esa consola y licencia, actualiza Jumpseller.
-     * Primaria: quita el precio de oferta y deja el precio regular.
+     * Primaria en oferta: no se toca, para que la preventa/oferta siga visible.
+     * Primaria sin oferta: quita el precio de oferta y deja el precio regular.
      * Secundaria: elimina siempre la opción, tenga o no oferta.
      */
     public function sincronizarSiAgotado(string $juego, string $tipoCuenta, string $consola): void
@@ -121,6 +122,17 @@ class JumpsellerAgotadoService
     private function quitarPrecioOferta(int|string $idProducto, string $juego, string $tipoCuenta, string $consola, array $ids): void
     {
         $producto = $this->jumpseller->getProductoId($idProducto);
+
+        if ($this->productoEnOferta($producto['product'] ?? [])) {
+            $this->notificar(
+                'agotado_juego',
+                $juego,
+                "Se agotaron las cuentas {$tipoCuenta} para {$consola}, pero el juego sigue en oferta y no se quitó de Jumpseller."
+            );
+
+            return;
+        }
+
         $variantes = $producto['product']['variants'] ?? [];
         $idCuentaObjetivo = $ids['primaria'];
         $idConsolaObjetivo = $consola === 'PS4' ? $ids['ps4'] : $ids['ps5'];
@@ -205,6 +217,23 @@ class JumpsellerAgotadoService
             $juego,
             "Se agotaron las cuentas {$tipoCuenta} para {$consola}"
         );
+    }
+
+    private function productoEnOferta(array $producto): bool
+    {
+        $categoriaOferta = env('JUMPSELLER_OFERTAS_CATEGORY_ID');
+
+        if (! $categoriaOferta) {
+            return false;
+        }
+
+        foreach ($producto['categories'] ?? [] as $categoria) {
+            if (($categoria['id'] ?? null) == $categoriaOferta) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function idsOpciones(): array
