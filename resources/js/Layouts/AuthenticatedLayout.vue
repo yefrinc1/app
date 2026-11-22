@@ -12,8 +12,22 @@ const page = usePage();
 |--------------------------------------------------------------------------
 */
 
+const SIDEBAR_COLLAPSED_KEY = 'mrjuegoz.sidebar-collapsed';
+
+const leerSidebarCollapsed = () => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+    } catch {
+        return false;
+    }
+};
+
 const sidebarOpen = ref(false);
-const sidebarCollapsed = ref(false);
+const sidebarCollapsed = ref(leerSidebarCollapsed());
 const profileMenuOpen = ref(false);
 
 const expandedSections = ref({
@@ -151,6 +165,13 @@ const menuSections = computed(() => [
                 icon: '👤',
                 route: 'correo-madre.index',
                 active: 'correo-madre.*',
+                permission: 'correos.madre',
+            },
+            {
+                label: 'Creación completa',
+                icon: '👥',
+                route: 'correo-juegos.creacion-completa',
+                active: 'correo-juegos.creacion-completa',
                 permission: 'correos.madre',
             },
             {
@@ -333,6 +354,22 @@ const isSectionActive = (section) => {
 | Acciones del menú
 |--------------------------------------------------------------------------
 */
+
+const guardarSidebarCollapsed = (valor) => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, valor ? '1' : '0');
+    } catch {
+        // Si el almacenamiento no está disponible, el menú sigue funcionando en esta página.
+    }
+};
+
+watch(sidebarCollapsed, (valor) => {
+    guardarSidebarCollapsed(valor);
+});
 
 const toggleSidebar = () => {
     sidebarCollapsed.value = !sidebarCollapsed.value;

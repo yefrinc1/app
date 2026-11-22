@@ -49,7 +49,7 @@ const seleccionarCliente = (cliente) => { form.cliente_id = cliente.id; clienteS
 const sinResultadosCliente = computed(() => modoCliente.value === 'existente' && !clienteSeleccionado.value && !buscando.value && busquedaCliente.value.trim().length >= 2 && !clientes.value.length);
 const CODIGOS_PAIS = ['1684', '1264', '1268', '1242', '1246', '1441', '1284', '1345', '1767', '1809', '1829', '1849', '1473', '1671', '1876', '1664', '1787', '1939', '1869', '1758', '1784', '1868', '1649', '1340', '998', '996', '995', '994', '993', '992', '977', '976', '975', '974', '973', '972', '971', '970', '968', '967', '966', '965', '964', '963', '962', '961', '960', '886', '880', '856', '855', '853', '852', '850', '692', '691', '690', '689', '688', '687', '686', '685', '683', '682', '681', '680', '679', '678', '677', '676', '675', '674', '673', '672', '670', '599', '598', '597', '595', '594', '593', '592', '591', '590', '509', '508', '507', '506', '505', '504', '503', '502', '501', '500', '423', '421', '420', '389', '387', '386', '385', '383', '382', '381', '380', '378', '377', '376', '375', '374', '373', '372', '371', '370', '359', '358', '357', '356', '355', '354', '353', '352', '351', '350', '299', '298', '297', '291', '290', '269', '268', '267', '266', '265', '264', '263', '262', '261', '260', '258', '257', '256', '255', '254', '253', '252', '251', '250', '249', '248', '246', '245', '244', '243', '242', '241', '240', '239', '238', '237', '236', '235', '234', '233', '232', '231', '230', '229', '228', '227', '226', '225', '224', '223', '222', '221', '220', '218', '216', '213', '212', '211', '98', '95', '94', '93', '92', '91', '90', '86', '84', '82', '81', '66', '65', '64', '63', '62', '61', '60', '58', '57', '56', '55', '54', '53', '52', '51', '49', '48', '47', '46', '45', '44', '43', '41', '40', '39', '36', '34', '33', '32', '31', '30', '27', '20', '7', '1'];
 const separarTelefono = (texto) => {
-    const limpio = texto.trim();
+    const limpio = String(texto || '').replace(/[\p{Cf}]+/gu, '').trim();
     const internacional = /^\s*(\+|00)/.test(limpio);
     let numeros = limpio.replace(/\D/g, '');
     if (numeros.startsWith('00')) numeros = numeros.slice(2);
@@ -67,15 +67,15 @@ const separarTelefono = (texto) => {
     return { codigo_pais: '57', telefono: numeros };
 };
 const crearClienteDesdeBusqueda = () => {
-    const texto = busquedaCliente.value.trim();
+    const texto = String(busquedaCliente.value || '').replace(/[\p{Cf}]+/gu, '').trim();
     const nuevo = { nombre: '', codigo_pais: '57', telefono: '', usuario: '', email: '', notas: '' };
     if (/^\+?[\d\s\-().]+$/.test(texto) && /\d/.test(texto) && !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(texto)) {
         Object.assign(nuevo, separarTelefono(texto));
     } else {
         nuevo.usuario = texto.replace(/^@+/, '');
     }
-    form.cliente_nuevo = nuevo;
     modoCliente.value = 'nuevo';
+    form.cliente_nuevo = nuevo;
     busquedaCliente.value = '';
     clientes.value = [];
 };
@@ -155,7 +155,18 @@ const guardar = async () => {
                     </div>
                     <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <div><InputLabel for="cliente-nombre" value="Nombre" /><TextInput id="cliente-nombre" v-model="form.cliente_nuevo.nombre" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors['cliente_nuevo.nombre']" /></div>
-                        <div><InputLabel for="cliente-telefono" value="Teléfono" /><div class="mt-1 grid grid-cols-[80px_minmax(0,1fr)]"><TextInput id="cliente-pais" v-model="form.cliente_nuevo.codigo_pais" class="block w-full rounded-r-none text-center" maxlength="5" placeholder="57" /><TextInput id="cliente-telefono" v-model="form.cliente_nuevo.telefono" class="block w-full rounded-l-none" placeholder="3001234567" /></div><InputError class="mt-2" :message="form.errors['cliente_nuevo.telefono']" /></div>
+                        <div class="min-w-0">
+                            <InputLabel for="cliente-telefono" value="Teléfono" />
+                            <div class="mt-1 flex min-w-0">
+                                <div class="w-20 shrink-0">
+                                    <TextInput id="cliente-pais" v-model="form.cliente_nuevo.codigo_pais" class="rounded-r-none px-2 text-center" maxlength="5" placeholder="57" inputmode="numeric" />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <TextInput id="cliente-telefono" v-model="form.cliente_nuevo.telefono" class="rounded-l-none" placeholder="3001234567" inputmode="tel" />
+                                </div>
+                            </div>
+                            <InputError class="mt-2" :message="form.errors['cliente_nuevo.telefono']" />
+                        </div>
                         <div><InputLabel for="cliente-instagram" value="Instagram" /><TextInput id="cliente-instagram" v-model="form.cliente_nuevo.usuario" class="mt-1 block w-full" placeholder="@usuario" /></div>
                         <div><InputLabel for="cliente-email" value="Correo" /><TextInput id="cliente-email" v-model="form.cliente_nuevo.email" type="email" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors['cliente_nuevo.email']" /></div>
                         <div class="md:col-span-2"><InputLabel for="cliente-notas" value="Notas" /><TextInput id="cliente-notas" v-model="form.cliente_nuevo.notas" class="mt-1 block w-full" placeholder="Información adicional del cliente" /></div>

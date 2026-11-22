@@ -4,7 +4,7 @@ import { Link, Head, useForm } from "@inertiajs/vue3";
 import Modal from '@/Components/Modal.vue';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import Swal from 'sweetalert2';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
@@ -52,20 +52,33 @@ if (props.mensaje_correo_creado != '') {
     });
 }
 
-const editarModal = (id, contrasena, disponible, fecha_nacimiento, juego, precio_usd, precio_cop, primaria_ps5, primaria_ps4, secundaria) => {
-    form.id = id;
-    form.contrasena = contrasena;
-    form.disponible = disponible == 1 ? true : false;
-    form.fecha_nacimiento = new Date(fecha_nacimiento).toISOString().split('T')[0];
-    form.juego = juego;
-    form.precio_usd = precio_usd;
-    form.precio_cop = precio_cop;
-    form.primaria_ps5 = primaria_ps5;
-    form.primaria_ps4 = primaria_ps4;
-    form.secundaria = secundaria;
+const saldoMadreDisponible = ref(0);
+const correoMadreNombre = ref('');
+
+const editarModal = (correo) => {
+    form.id = correo.id;
+    form.contrasena = correo.contrasena;
+    form.disponible = correo.disponible == 1;
+    form.fecha_nacimiento = new Date(correo.fecha_nacimiento).toISOString().split('T')[0];
+    form.juego = correo.juego;
+    form.precio_usd = correo.precio_usd;
+    form.precio_cop = correo.precio_cop;
+    form.primaria_ps5 = correo.primaria_ps5;
+    form.primaria_ps4 = correo.primaria_ps4;
+    form.secundaria = correo.secundaria;
+    saldoMadreDisponible.value = Number(correo.correo_madre?.saldo_usd ?? 0) + Number(correo.precio_usd ?? 0);
+    correoMadreNombre.value = correo.correo_madre?.correo ?? `Madre #${correo.id_correo_madre}`;
     confirmingCorreoEditar.value = true;
-    nextTick(() => correoInput.value.focus());
+    nextTick(() => correoInput.value?.focus());
 };
+
+const saldoInsuficiente = computed(() => {
+    if (form.precio_usd === '' || form.precio_usd === null) {
+        return false;
+    }
+
+    return Number(form.precio_usd) > saldoMadreDisponible.value;
+});
 
 // Función para realizar la búsqueda
 const buscarCorreo = () => {
@@ -75,6 +88,10 @@ const buscarCorreo = () => {
 };
 
 const editarCorreo = () => {
+    if (saldoInsuficiente.value) {
+        return;
+    }
+
     const params = new URLSearchParams(window.location.search);
 
     form
@@ -183,7 +200,7 @@ const formatearFecha = (fecha) => {
                                     <td class="sticky right-0 bg-white px-4 py-2 z-10">
                                         <div class="flex flex-col items-center gap-2">
                                             <SecondaryButton class="w-8 h-8 flex items-center justify-center"
-                                                @click="editarModal(correo.id, correo.contrasena, correo.disponible, correo.fecha_nacimiento, correo.juego, correo.precio_usd, correo.precio_cop, correo.primaria_ps5, correo.primaria_ps4, correo.secundaria)"
+                                                @click="editarModal(correo)"
                                             >
                                                 <i class="fa-solid fa-user-pen"></i>
                                             </SecondaryButton>
@@ -343,6 +360,14 @@ const formatearFecha = (fecha) => {
                             class="mt-1 block w-full" 
                             autocomplete="precio_usd"/>
 
+                        <p v-if="correoMadreNombre" class="mt-2 text-sm text-gray-600">
+                            Madre: {{ correoMadreNombre }} · Disponible:
+                            <span class="font-semibold">{{ saldoMadreDisponible }} USD</span>
+                            (saldo actual + precio de este juego)
+                        </p>
+                        <p v-if="saldoInsuficiente" class="mt-2 text-sm font-semibold text-red-600">
+                            La madre no tiene saldo suficiente. Máximo: {{ saldoMadreDisponible }} USD.
+                        </p>
                         <InputError :message="form.errors.precio_usd" class="mt-2" />
                     </div>
 
@@ -469,8 +494,8 @@ const formatearFecha = (fecha) => {
                         <SecondaryButton @click="closeModal"> {{ $t("Cancel") }}
                         </SecondaryButton>
 
-                        <PrimaryButton class="ms-3" :class="{ 'opacity-25': form.processing }"
-                            :disabled="form.processing" @click="editarCorreo">
+                        <PrimaryButton class="ms-3" :class="{ 'opacity-25': form.processing || saldoInsuficiente }"
+                            :disabled="form.processing || saldoInsuficiente" @click="editarCorreo">
                             Editar
                         </PrimaryButton>
                     </div>

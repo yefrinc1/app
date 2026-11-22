@@ -165,7 +165,7 @@ const copiarCodigo = async () => {
                         <div>
                             <InputLabel for="correo" :value="$t('Email')" />
 
-                            <div class="relative w-full">
+                            <div class="relative z-20 w-full">
                                 <TextInput
                                     id="correo"
                                     ref="correo"
@@ -179,7 +179,7 @@ const copiarCodigo = async () => {
 
                                 <ul
                                     v-if="form.correo !== '' && sugerencias.length !== 0"
-                                    class="absolute bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md"
+                                    class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg"
                                 >
                                     <li
                                         v-for="correo in sugerencias"

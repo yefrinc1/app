@@ -101,10 +101,14 @@ class CorreoMadreController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
         $correoMadre = CorreoMadre::with('correosJuegos')->findOrFail($id);
-        return Inertia::render('CorreoMadre/Show', ['correos_madres' => $correoMadre]);
+
+        return Inertia::render('CorreoMadre/Show', [
+            'correos_madres' => $correoMadre,
+            'mensaje_correo_creado' => $request->get('mensaje_correo_creado', ''),
+        ]);
     }
 
     public function quitarHijo(string $id)

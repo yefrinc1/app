@@ -6,7 +6,7 @@ import { defineProps } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, Head } from '@inertiajs/vue3';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import JuegoCatalogoInput from '@/Components/JuegoCatalogoInput.vue';
 
@@ -31,14 +31,36 @@ const selectedOption = ref("");
 onMounted(() => {
     if (props.correosMadres.length > 0) {
         selectedOptionMadre.value = props.correosMadres[0].id;
-        form.id_correo_madre = selectedOptionMadre;
+        form.id_correo_madre = props.correosMadres[0].id;
     }
 
     if (props.correosGlobales.length > 0) {
         selectedOption.value = props.correosGlobales[0].id;
-        form.id_correo_globales = selectedOption;
+        form.id_correo_globales = props.correosGlobales[0].id;
     }
 });
+
+const madreSeleccionada = computed(() =>
+    props.correosMadres.find((madre) => String(madre.id) === String(form.id_correo_madre))
+);
+
+const saldoMadre = computed(() => Number(madreSeleccionada.value?.saldo_usd ?? 0));
+
+const saldoInsuficiente = computed(() => {
+    if (form.precio_usd === '' || form.precio_usd === null) {
+        return false;
+    }
+
+    return Number(form.precio_usd) > saldoMadre.value;
+});
+
+const guardar = () => {
+    if (saldoInsuficiente.value) {
+        return;
+    }
+
+    form.post(route('correo-juegos.store'));
+};
 
 </script>
 
@@ -59,7 +81,7 @@ onMounted(() => {
                             Datos para la creación de correo juego
                         </p>
                     </header>
-                    <form @submit.prevent="form.post(route('correo-juegos.store'))" class="mt-6 space-y-6 w-full md:w-1/2">
+                    <form @submit.prevent="guardar" class="mt-6 space-y-6 w-full md:w-1/2">
                         <div>
                             <InputLabel for="id_correo_madre" value="Correo madre" />
 
@@ -263,6 +285,12 @@ onMounted(() => {
                                 autocomplete="precio_usd"
                             />
 
+                            <p v-if="madreSeleccionada" class="mt-2 text-sm text-gray-600">
+                                Saldo de la madre: <span class="font-semibold">{{ saldoMadre }} USD</span>
+                            </p>
+                            <p v-if="saldoInsuficiente" class="mt-2 text-sm font-semibold text-red-600">
+                                La madre no tiene saldo suficiente. Disponible: {{ saldoMadre }} USD.
+                            </p>
                             <InputError :message="form.errors.precio_usd" class="mt-2" />
                         </div>
 
@@ -359,7 +387,7 @@ onMounted(() => {
                             <Link :href="route('correo-juegos.index')">
                                 <SecondaryButton>Volver</SecondaryButton>
                             </Link>
-                            <PrimaryButton :disabled="form.processing">{{ $t("Save") }}</PrimaryButton>
+                            <PrimaryButton :disabled="form.processing || saldoInsuficiente">{{ $t("Save") }}</PrimaryButton>
                         </div>
                     </form>
                 </section>

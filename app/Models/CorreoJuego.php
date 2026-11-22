@@ -12,6 +12,11 @@ class CorreoJuego extends Model
     protected $table = 'correo_juegos';
     protected $guarded = [];
 
+    public function correoMadre()
+    {
+        return $this->belongsTo(CorreoMadre::class, 'id_correo_madre');
+    }
+
     public function ventas()
     {
         return $this->hasMany(Ventas::class, 'id_correo_juego');

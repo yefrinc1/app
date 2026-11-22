@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgregarUsuarioController;
 use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\CodigoVerificacionController;
+use App\Http\Controllers\CorreoCreacionCompletaController;
 use App\Http\Controllers\CorreoGlobalesController;
 use App\Http\Controllers\CorreoJuegoController;
 use App\Http\Controllers\CorreoMadreController;
@@ -73,6 +74,9 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
     Route::get('/codigo-generar-disponible', [CodigoVerificacionController::class, 'generarCodigoDisponible'])->name('codigo-generar-disponible');
     Route::get('/correo-juegos/crear-juego-manual', [CorreoJuegoController::class, 'crearJuegoManual'])->name('correo-juegos.crear-juego-manual');
     Route::post('/correo-juegos/store-manual', [CorreoJuegoController::class, 'storeManual'])->name('correo-juegos.store-manual');
+    Route::get('/correo-juegos/creacion-completa', [CorreoCreacionCompletaController::class, 'create'])->name('correo-juegos.creacion-completa');
+    Route::get('/correo-juegos/creacion-completa/madres', [CorreoCreacionCompletaController::class, 'buscarMadres'])->name('correo-juegos.creacion-completa.madres');
+    Route::post('/correo-juegos/creacion-completa', [CorreoCreacionCompletaController::class, 'store'])->name('correo-juegos.creacion-completa.store');
     Route::resource('/correo-juegos', CorreoJuegoController::class);
     Route::get('/ventas/comprobar-existencia-juego', [VentasController::class, 'comprobarExistenciaJuegoApi'])->name('ventas.comprobar-existencia-juego');
     Route::resource('/ventas', VentasController::class);

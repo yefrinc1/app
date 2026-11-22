@@ -8,6 +8,7 @@ use App\Models\CorreoJuego;
 use App\Models\CorreoMadre;
 use App\Models\Notificaciones;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class CorreoJuegoController extends Controller
@@ -26,7 +27,8 @@ class CorreoJuegoController extends Controller
         $icon_mensaje = $request->get('icon_mensaje', '');
     
         // Filtra los correos si se proporciona un término de búsqueda
-        $correos = CorreoJuego::when($search, function ($query, $search) {
+        $correos = CorreoJuego::with(['correoMadre:id,correo,saldo_usd'])
+        ->when($search, function ($query, $search) {
             return $query->where('correo', 'like', "%{$search}%");
         })
         ->orderBy('disponible', 'desc') // Ordena por 'disponible'
@@ -143,77 +145,66 @@ class CorreoJuegoController extends Controller
 
         $correoGlobal = CorreoGlobales::findOrFail($validatedData['id_correo_globales']);
         $correoMadre = CorreoMadre::findOrFail($validatedData['id_correo_madre']);
-        $crearCorreoJuego = true;
 
-        if ($request->precio_usd != '') {
-            if ($request->precio_usd > $correoMadre->saldo_usd) {
-                $crearCorreoJuego = false;
-            }
+        if ($request->precio_usd !== null && $request->precio_usd !== '' && (float) $request->precio_usd > (float) $correoMadre->saldo_usd) {
+            throw ValidationException::withMessages([
+                'precio_usd' => 'La madre solo tiene '.$correoMadre->saldo_usd.' USD. No alcanza para este precio.',
+            ]);
         }
 
-        if ($crearCorreoJuego) {
-            $precioCOP = null;
-            if ($request->precio_usd) {
-                $saldoRestanteUSD = $correoMadre->saldo_usd - $request->precio_usd;
+        $precioCOP = null;
+        if ($request->precio_usd) {
+            $saldoRestanteUSD = $correoMadre->saldo_usd - $request->precio_usd;
+            $precioDolar = $correoMadre->saldo_usd != 0 ? ($correoMadre->saldo_cop / $correoMadre->saldo_usd) : 0;
+            $precioCOP = $request->precio_usd * $precioDolar;
+            $saldoRestanteCOP = $correoMadre->saldo_cop - $precioCOP;
+            $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
+        }
 
-                $precioDolar = $correoMadre->saldo_usd != 0 ? ($correoMadre->saldo_cop / $correoMadre->saldo_usd) : 0;
-                $precioCOP = $request->precio_usd * $precioDolar;
-                $saldoRestanteCOP = $correoMadre->saldo_cop - $precioCOP;
-                $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
-            }
+        $correoJuego = CorreoJuego::create([
+            'correo' => $correoGlobal->correo,
+            'contrasena' => $validatedData['contrasena'],
+            'id_correo_globales' => $validatedData['id_correo_globales'],
+            'id_correo_madre' => $validatedData['id_correo_madre'],
+            'fecha_nacimiento' => $validatedData['fecha_nacimiento'],
+            'juego' => $request->juego,
+            'precio_usd' => $request->precio_usd,
+            'precio_cop' => $precioCOP,
+        ]);
 
-            $correoJuego = CorreoJuego::create([
-                'correo' => $correoGlobal->correo,
-                'contrasena' => $validatedData['contrasena'],
-                'id_correo_globales' => $validatedData['id_correo_globales'],
-                'id_correo_madre' => $validatedData['id_correo_madre'],
-                'fecha_nacimiento' => $validatedData['fecha_nacimiento'],
-                'juego' => $request->juego,
-                'precio_usd' => $request->precio_usd,
-                'precio_cop' => $precioCOP,
-            ]);
-
-            $notificacionExiste = Notificaciones::where('juego', $request->juego)
+        $notificacionExiste = Notificaciones::where('juego', $request->juego)
             ->where('tipo', 'crear_juego')
             ->first();
 
-            if ($notificacionExiste) {
-                $notificacionExiste->delete();
-            }
-            
-            $juegosMadre = CorreoJuego::where('id_correo_madre', $validatedData['id_correo_madre'])->count();
-            if ($juegosMadre >= 6) {
-                $correoMadre->update(['disponible' => 0]);
-            }
-            $correoGlobal->update(['disponible' => 0]);
-    
-            if (trim($request->codigo) != '') {
-                $codigos = CodigoVerificacion::separarCodigos($request->codigo);
-    
-                $codigoRespaldo = 1;
-                foreach ($codigos as $clave => $codigo) {
-                    if ($clave > 0 && $codigoRespaldo == 1) {
-                        $codigoRespaldo = 0;
-                    }
-                    
-                    CodigoVerificacion::create([
-                        'codigo' => $codigo,
-                        'id_correo_juego' => $correoJuego->id,
-                        'respaldo' => $codigoRespaldo,
-                    ]);
-                }
-            }
+        if ($notificacionExiste) {
+            $notificacionExiste->delete();
+        }
 
-            $mensaje = 'Se creo correctamente el correo del juego';
-            $icon_mensaje = 'success';
-        } else {
-            $mensaje = 'No fue posible crear el juego ya que la cuenta madre no tiene saldo suficiente';
-            $icon_mensaje = 'error';
+        $juegosMadre = CorreoJuego::where('id_correo_madre', $validatedData['id_correo_madre'])->count();
+        if ($juegosMadre >= 6) {
+            $correoMadre->update(['disponible' => 0]);
+        }
+        $correoGlobal->update(['disponible' => 0]);
+
+        if (trim($request->codigo) != '') {
+            $codigos = CodigoVerificacion::separarCodigos($request->codigo);
+            $codigoRespaldo = 1;
+            foreach ($codigos as $clave => $codigo) {
+                if ($clave > 0 && $codigoRespaldo == 1) {
+                    $codigoRespaldo = 0;
+                }
+
+                CodigoVerificacion::create([
+                    'codigo' => $codigo,
+                    'id_correo_juego' => $correoJuego->id,
+                    'respaldo' => $codigoRespaldo,
+                ]);
+            }
         }
 
         return redirect()->route('correo-juegos.index', [
-            'mensaje_correo_creado' => $mensaje,
-            'icon_mensaje' => $icon_mensaje,
+            'mensaje_correo_creado' => 'Se creo correctamente el correo del juego',
+            'icon_mensaje' => 'success',
         ]);
     }
 
@@ -231,34 +222,35 @@ class CorreoJuegoController extends Controller
         $correoMadre = CorreoMadre::find($correoJuego->id_correo_madre);
 
         if ($correoMadre) {
-            $saldoNuevoMadreUSD = $correoJuego->precio_usd + $correoMadre->saldo_usd;
-            $saldoNuevoMadreCOP = $correoJuego->precio_cop + $correoMadre->saldo_cop;
-    
-            if ($saldoNuevoMadreUSD >= $request->precio_usd) {
-                $saldoRestanteUSD = $saldoNuevoMadreUSD - $request->precio_usd;
-                $precioDolar = $saldoNuevoMadreUSD != 0 ? ($saldoNuevoMadreCOP / $saldoNuevoMadreUSD) : 0;
-                $precioCOP = $request->precio_usd * $precioDolar;
-                $saldoRestanteCOP = $saldoNuevoMadreCOP - $precioCOP;
-                $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
-    
-                $correoJuego->update([
-                    'contrasena' => $request->contrasena,
-                    'fecha_nacimiento' => $request->fecha_nacimiento,
-                    'juego' => $request->juego,
-                    'precio_usd' => $request->precio_usd,
-                    'precio_cop' => $precioCOP,
-                    'disponible' => $request->disponible ? 1 : 0,
-                    'primaria_ps4' => $request->primaria_ps4,
-                    'primaria_ps5' => $request->primaria_ps5,
-                    'secundaria' => $request->secundaria,
+            $saldoNuevoMadreUSD = (float) $correoJuego->precio_usd + (float) $correoMadre->saldo_usd;
+            $saldoNuevoMadreCOP = (float) $correoJuego->precio_cop + (float) $correoMadre->saldo_cop;
+
+            if ($request->precio_usd !== null && $request->precio_usd !== '' && $saldoNuevoMadreUSD < (float) $request->precio_usd) {
+                throw ValidationException::withMessages([
+                    'precio_usd' => 'La madre solo tiene '.$saldoNuevoMadreUSD.' USD disponibles. No alcanza para este precio.',
                 ]);
-    
-                $mensaje = "Se actualizo correctamente el juego";
-                $icon_mensaje = 'success';
-            } else {
-                $mensaje = "No fue posible actualizar el juego, la cuenta madre solo tiene $saldoNuevoMadreUSD USD de saldo";
-                $icon_mensaje = 'error';
             }
+
+            $saldoRestanteUSD = $saldoNuevoMadreUSD - $request->precio_usd;
+            $precioDolar = $saldoNuevoMadreUSD != 0 ? ($saldoNuevoMadreCOP / $saldoNuevoMadreUSD) : 0;
+            $precioCOP = $request->precio_usd * $precioDolar;
+            $saldoRestanteCOP = $saldoNuevoMadreCOP - $precioCOP;
+            $correoMadre->update(['saldo_usd' => $saldoRestanteUSD, 'saldo_cop' => $saldoRestanteCOP]);
+
+            $correoJuego->update([
+                'contrasena' => $request->contrasena,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'juego' => $request->juego,
+                'precio_usd' => $request->precio_usd,
+                'precio_cop' => $precioCOP,
+                'disponible' => $request->disponible ? 1 : 0,
+                'primaria_ps4' => $request->primaria_ps4,
+                'primaria_ps5' => $request->primaria_ps5,
+                'secundaria' => $request->secundaria,
+            ]);
+
+            $mensaje = "Se actualizo correctamente el juego";
+            $icon_mensaje = 'success';
         } else {
             $correoJuego->update([
                 'contrasena' => $request->contrasena,
