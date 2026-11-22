@@ -48,7 +48,11 @@ class CorreoCreacionCompletaController extends Controller
     {
         $validated = $request->validate([
             'modo' => 'required|in:existente,nueva',
-            'madre_id' => 'exclude_unless:modo,existente|required|exists:correo_madre,id',
+            'madre_id' => [
+                'exclude_unless:modo,existente',
+                'required',
+                Rule::exists('correo_madre', 'id')->where('disponible', 1),
+            ],
             'madre.id_correo_globales' => [
                 'exclude_unless:modo,nueva',
                 'required',
@@ -116,7 +120,16 @@ class CorreoCreacionCompletaController extends Controller
                     'id_correo_madre' => $madre->id,
                 ]);
             } else {
-                $madre = CorreoMadre::where('id', $validated['madre_id'])->lockForUpdate()->firstOrFail();
+                $madre = CorreoMadre::where('id', $validated['madre_id'])
+                    ->where('disponible', 1)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $madre) {
+                    throw ValidationException::withMessages([
+                        'madre_id' => 'Esta madre ya no está disponible.',
+                    ]);
+                }
             }
 
             $hijosActuales = CorreoJuego::where('id_correo_madre', $madre->id)->lockForUpdate()->count();
@@ -184,6 +197,7 @@ class CorreoCreacionCompletaController extends Controller
                 $query->select('id', 'id_correo_madre', 'correo', 'contrasena', 'fecha_nacimiento', 'juego')
                     ->latest();
             }])
+            ->where('disponible', 1)
             ->whereRaw('(select count(*) from correo_juegos where correo_juegos.id_correo_madre = correo_madre.id) < 6');
     }
 
