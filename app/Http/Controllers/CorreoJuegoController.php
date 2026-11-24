@@ -180,10 +180,7 @@ class CorreoJuegoController extends Controller
             $notificacionExiste->delete();
         }
 
-        $juegosMadre = CorreoJuego::where('id_correo_madre', $validatedData['id_correo_madre'])->count();
-        if ($juegosMadre >= 6) {
-            $correoMadre->update(['disponible' => 0]);
-        }
+        $correoMadre->sincronizarDisponibilidad();
         $correoGlobal->update(['disponible' => 0]);
 
         if (trim($request->codigo) != '') {
@@ -249,6 +246,13 @@ class CorreoJuegoController extends Controller
                 'secundaria' => $request->secundaria,
             ]);
 
+            if ($correoJuego->es_cuenta_madre) {
+                $correoMadre->update([
+                    'contrasena' => $request->contrasena,
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                ]);
+            }
+
             $mensaje = "Se actualizo correctamente el juego";
             $icon_mensaje = 'success';
         } else {
@@ -307,21 +311,30 @@ class CorreoJuegoController extends Controller
     {
         $correoJuego = CorreoJuego::findOrFail($id);
 
-        if ($correoJuego->id_correo_madre) {
-            $correoMadre = CorreoMadre::findOrFail($correoJuego->id_correo_madre);
+        $correoMadre = $correoJuego->id_correo_madre
+            ? CorreoMadre::find($correoJuego->id_correo_madre)
+            : null;
+
+        if ($correoMadre) {
+            $correoMadre->registrarHijoHistorial($correoJuego, 'eliminado', request()->user()?->id);
             $saldoRestanteUSD = $correoJuego->precio_usd + $correoMadre->saldo_usd;
             $saldoRestanteCOP = $correoJuego->precio_cop + $correoMadre->saldo_cop;
             $correoMadre->update([
-                'saldo_usd' => $saldoRestanteUSD, 
-                'saldo_cop' => $saldoRestanteCOP, 
-                'disponible' => 1
+                'saldo_usd' => $saldoRestanteUSD,
+                'saldo_cop' => $saldoRestanteCOP,
             ]);
+            $correoMadre->sincronizarDisponibilidad();
         }
 
-        $correoGlobal = CorreoGlobales::findOrFail($correoJuego->id_correo_globales);
+        $comparteGlobalMadre = $correoMadre
+            && (int) $correoJuego->id_correo_globales === (int) $correoMadre->id_correo_globales;
+
+        $correoGlobal = CorreoGlobales::find($correoJuego->id_correo_globales);
         $correoJuego->delete();
-        $correoGlobal->update(['disponible' => 1]);
-        CodigoVerificacion::where('id_correo_juego', $correoJuego->id)->delete();
+        if ($correoGlobal && ! $comparteGlobalMadre) {
+            $correoGlobal->update(['disponible' => 1]);
+        }
+        CodigoVerificacion::where('id_correo_juego', $id)->delete();
 
         return redirect()->back();
     }

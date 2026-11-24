@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Link, Head, useForm } from '@inertiajs/vue3';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import Swal from 'sweetalert2';
@@ -12,6 +13,7 @@ const props = defineProps({
 });
 
 const form = useForm({});
+const usarMadreForm = useForm({});
 
 if (props.mensaje_correo_creado) {
     Swal.fire({
@@ -21,9 +23,47 @@ if (props.mensaje_correo_creado) {
     });
 }
 
-const quitarHijo = (id) => {
+const hijos = computed(() => [...(props.correos_madres.correos_juegos ?? [])].sort(
+    (a, b) => Number(Boolean(b.es_cuenta_madre)) - Number(Boolean(a.es_cuenta_madre)),
+));
+const hijosReales = computed(() => hijos.value.filter((hijo) => !hijo.es_cuenta_madre));
+const usaMadreComoHijo = computed(() => hijos.value.some((hijo) => hijo.es_cuenta_madre));
+const historial = computed(() => props.correos_madres.historial_hijos ?? []);
+
+const usarComoHijo = () => {
     Swal.fire({
-        title: '¿Seguro que deseas quitar este hijo?',
+        title: '¿Usar esta madre como hijo?',
+        text: 'Se crea una cuenta jugable con el mismo correo y contraseña. No se borra ningún hijo. Luego asígnale el juego para venderla y enviarla por el portal.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, usar como hijo',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#16a34a',
+        reverseButtons: true,
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        usarMadreForm.post(route('correo-madre.usar-como-hijo', props.correos_madres.id), {
+            preserveScroll: true,
+            onError: (errores) => {
+                Swal.fire({
+                    title: Object.values(errores).flat().filter(Boolean)[0] || 'No se pudo registrar la madre como hijo',
+                    icon: 'error',
+                    confirmButtonColor: '#dc2626',
+                });
+            },
+        });
+    });
+};
+
+const quitarHijo = (hijo) => {
+    Swal.fire({
+        title: hijo.es_cuenta_madre ? '¿Dejar de usar la madre como hijo?' : '¿Seguro que deseas quitar este hijo?',
+        text: hijo.es_cuenta_madre
+            ? 'La madre sigue existiendo. Solo se quita la cuenta jugable.'
+            : 'Quedará en el historial de esta madre.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sí, quitar',
@@ -35,10 +75,10 @@ const quitarHijo = (id) => {
             return;
         }
 
-        form.get(route('correo-madre.quitarHijo', id), {
+        form.get(route('correo-madre.quitarHijo', hijo.id), {
             onSuccess: () => {
                 Swal.fire({
-                    title: 'Hijo eliminado correctamente',
+                    title: hijo.es_cuenta_madre ? 'La madre ya no se usa como hijo' : 'Hijo quitado. Quedó en el historial.',
                     icon: 'success',
                     confirmButtonColor: '#16a34a',
                 });
@@ -65,7 +105,6 @@ const formatearFecha = (fecha) => {
     }).format(new Date(fecha));
 };
 
-const hijos = props.correos_madres.correos_juegos ?? [];
 </script>
 
 <template>
@@ -105,11 +144,28 @@ const hijos = props.correos_madres.correos_juegos ?? [];
                             </span>
                         </div>
 
-                        <div class="mt-5 flex flex-wrap gap-2">
+                        <div class="mt-5 flex flex-wrap items-center gap-2">
                             <span class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1 text-xs font-bold text-red-800">
                                 <i class="fa-solid fa-users"></i>
-                                {{ hijos.length }}/6 hijos
+                                {{ hijosReales.length }}/6 hijos
                             </span>
+                            <span
+                                v-if="usaMadreComoHijo"
+                                class="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900"
+                            >
+                                <i class="fa-solid fa-crown"></i>
+                                Madre como hijo
+                            </span>
+                            <PrimaryButton
+                                v-else
+                                type="button"
+                                class="h-8 px-3 text-xs"
+                                :disabled="usarMadreForm.processing"
+                                @click="usarComoHijo"
+                            >
+                                <i class="fa-solid fa-user-plus mr-2"></i>
+                                Usar madre como hijo
+                            </PrimaryButton>
                             <span class="rounded-lg bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-900">
                                 USD {{ correos_madres.saldo_usd }}
                             </span>
@@ -126,7 +182,7 @@ const hijos = props.correos_madres.correos_juegos ?? [];
                 <section class="rounded-2xl bg-white p-4 shadow-md sm:p-6">
                     <header class="mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Hijos</h3>
-                        <p class="mt-1 text-sm text-gray-600">Cuentas ligadas a esta madre.</p>
+                        <p class="mt-1 text-sm text-gray-600">Hasta 6 hijos más la madre si la usas como cuenta jugable.</p>
                     </header>
 
                     <div v-if="hijos.length" class="overflow-x-auto rounded-xl border border-gray-200">
@@ -147,9 +203,16 @@ const hijos = props.correos_madres.correos_juegos ?? [];
                                     class="border-t border-gray-100 transition hover:bg-amber-50/40"
                                 >
                                     <td class="px-4 py-3">
-                                        <div class="flex items-center gap-2 font-medium text-gray-800">
+                                        <div class="flex flex-wrap items-center gap-2 font-medium text-gray-800">
                                             <i class="fa-solid fa-envelope text-red-400"></i>
                                             <span class="break-all">{{ correo.correo }}</span>
+                                            <span
+                                                v-if="correo.es_cuenta_madre"
+                                                class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900"
+                                            >
+                                                <i class="fa-solid fa-crown"></i>
+                                                Madre
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
@@ -166,12 +229,18 @@ const hijos = props.correos_madres.correos_juegos ?? [];
                                             <i class="fa-solid fa-gamepad"></i>
                                             {{ correo.juego }}
                                         </span>
-                                        <span v-else class="text-gray-400">Sin juego</span>
+                                        <span v-else class="text-gray-400">
+                                            Sin juego
+                                            <Link
+                                                :href="route('correo-juegos.index', { search: correo.correo })"
+                                                class="ml-2 text-xs font-semibold text-red-700 hover:underline"
+                                            >Asignar</Link>
+                                        </span>
                                     </td>
                                     <td class="px-4 py-3 text-gray-700">{{ formatearFecha(correo.fecha_nacimiento) }}</td>
                                     <td class="px-4 py-3">
                                         <div class="flex justify-center">
-                                            <DangerButton class="h-8 w-8" @click="quitarHijo(correo.id)">
+                                            <DangerButton class="h-8 w-8" @click="quitarHijo(correo)">
                                                 <i class="fa-solid fa-trash"></i>
                                             </DangerButton>
                                         </div>
@@ -183,6 +252,52 @@ const hijos = props.correos_madres.correos_juegos ?? [];
 
                     <p v-else class="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
                         No tiene hijos registrados.
+                    </p>
+                </section>
+
+                <section class="rounded-2xl bg-white p-4 shadow-md sm:p-6">
+                    <header class="mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Historial de hijos</h3>
+                        <p class="mt-1 text-sm text-gray-600">Quién se quitó o eliminó y de esta madre.</p>
+                    </header>
+
+                    <div v-if="historial.length" class="overflow-x-auto rounded-xl border border-gray-200">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 text-left text-gray-600">
+                                    <th class="px-4 py-3 font-semibold">Correo</th>
+                                    <th class="px-4 py-3 font-semibold">Juego</th>
+                                    <th class="px-4 py-3 font-semibold">Acción</th>
+                                    <th class="px-4 py-3 font-semibold">Quién</th>
+                                    <th class="px-4 py-3 font-semibold">Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="evento in historial" :key="evento.id" class="border-t border-gray-100">
+                                    <td class="px-4 py-3">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="break-all font-medium text-gray-800">{{ evento.correo }}</span>
+                                            <span
+                                                v-if="evento.es_cuenta_madre"
+                                                class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900"
+                                            >Madre</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">Contraseña: {{ evento.contrasena || '—' }}</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-700">{{ evento.juego || 'Sin juego' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                                            {{ evento.accion === 'eliminado' ? 'Eliminado' : 'Quitado' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-700">{{ evento.usuario?.name || 'Sistema' }}</td>
+                                    <td class="px-4 py-3 text-gray-700">{{ formatearFecha(evento.created_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p v-else class="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                        Aún no se ha quitado ningún hijo de esta madre.
                     </p>
                 </section>
 

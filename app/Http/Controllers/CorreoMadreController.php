@@ -7,13 +7,17 @@ use App\Models\CorreoGlobales;
 use App\Models\CorreoJuego;
 use App\Models\CorreoMadre;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class CorreoMadreController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:correos.madre', ['only' => ['index', 'create', 'store', 'show', 'update', 'destroy']]);
+        $this->middleware('can:correos.madre', ['only' => [
+            'index', 'create', 'store', 'show', 'update', 'destroy', 'quitarHijo', 'usarComoHijo',
+        ]]);
     }
     
     /**
@@ -26,7 +30,11 @@ class CorreoMadreController extends Controller
         $mensaje_correo_creado = $request->get('mensaje_correo_creado', '');
     
         // Filtra los correos si se proporciona un término de búsqueda
-        $correos = CorreoMadre::withCount('correosJuegos')
+        $correos = CorreoMadre::withCount([
+            'correosJuegos',
+            'correosJuegos as hijos_reales_count' => fn ($query) => $query->hijosReales(),
+            'correosJuegos as madre_jugable_count' => fn ($query) => $query->where('es_cuenta_madre', 1),
+        ])
         ->when($search, function ($query, $search) {
             return $query->where('correo', 'like', "%{$search}%");
         })
@@ -103,7 +111,7 @@ class CorreoMadreController extends Controller
      */
     public function show(Request $request, string $id)
     {
-        $correoMadre = CorreoMadre::with('correosJuegos')->findOrFail($id);
+        $correoMadre = CorreoMadre::with(['correosJuegos', 'historialHijos.usuario:id,name'])->findOrFail($id);
 
         return Inertia::render('CorreoMadre/Show', [
             'correos_madres' => $correoMadre,
@@ -111,14 +119,61 @@ class CorreoMadreController extends Controller
         ]);
     }
 
-    public function quitarHijo(string $id)
+    public function usarComoHijo(Request $request, string $id)
+    {
+        $madre = DB::transaction(function () use ($id) {
+            $madre = CorreoMadre::query()->lockForUpdate()->findOrFail($id);
+
+            if ($madre->cuentaComoHijo()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages([
+                    'madre' => 'Esta madre ya está registrada como hijo.',
+                ]);
+            }
+
+            CorreoJuego::create([
+                'correo' => $madre->correo,
+                'contrasena' => $madre->contrasena,
+                'id_correo_globales' => $madre->id_correo_globales,
+                'id_correo_madre' => $madre->id,
+                'fecha_nacimiento' => $madre->fecha_nacimiento,
+                'es_cuenta_madre' => true,
+                'disponible' => 1,
+            ]);
+
+            return $madre;
+        });
+
+        return redirect()->route('correo-madre.show', [
+            'correo_madre' => $madre->id,
+            'mensaje_correo_creado' => 'La madre quedó como hijo. Asígnale el juego en Correos juegos para poder venderla y enviarla por el portal.',
+        ]);
+    }
+
+    public function quitarHijo(Request $request, string $id)
     {
         $correoJuego = CorreoJuego::findOrFail($id);
         $idCorreoMadre = $correoJuego->id_correo_madre;
-        $correoJuego->update(['id_correo_madre' => null]);
+
+        if (! $idCorreoMadre) {
+            throw ValidationException::withMessages([
+                'hijo' => 'Este correo ya no está ligado a una madre.',
+            ]);
+        }
 
         $correoMadre = CorreoMadre::findOrFail($idCorreoMadre);
-        $correoMadre->update(['disponible' => 1]);
+        $correoMadre->registrarHijoHistorial($correoJuego, 'quitado', $request->user()?->id);
+
+        if ($correoJuego->es_cuenta_madre) {
+            CodigoVerificacion::where('id_correo_juego', $correoJuego->id)->delete();
+            $correoJuego->delete();
+
+            return redirect()->back();
+        }
+
+        $correoJuego->update(['id_correo_madre' => null]);
+        $correoMadre->sincronizarDisponibilidad();
+
+        return redirect()->back();
     }
 
     /**
@@ -148,6 +203,15 @@ class CorreoMadreController extends Controller
             'saldo_cop' => $request->saldo_cop,
             'disponible' => $request->disponible ? 1 : 0,
         ]);
+
+        CorreoJuego::query()
+            ->where('id_correo_madre', $correoMadre->id)
+            ->where('es_cuenta_madre', 1)
+            ->update([
+                'correo' => $correoMadre->correo,
+                'contrasena' => $request->contrasena,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+            ]);
 
         return redirect()->back();
     }

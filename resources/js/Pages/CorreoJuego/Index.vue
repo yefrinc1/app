@@ -217,6 +217,13 @@ const formatearFecha = (fecha) => {
                                             <div class="flex items-center gap-2 text-md">
                                                 <i class="fa-solid fa-envelope text-blue-500"></i>
                                                 <span class="truncate">{{ correo.correo }}</span>
+                                                <span
+                                                    v-if="correo.es_cuenta_madre"
+                                                    class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900"
+                                                >
+                                                    <i class="fa-solid fa-crown"></i>
+                                                    Madre
+                                                </span>
                                             </div>
 
                                             <div class="flex items-center gap-2 text-md text-gray-600 mt-1">

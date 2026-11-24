@@ -12,6 +12,15 @@ class CorreoJuego extends Model
     protected $table = 'correo_juegos';
     protected $guarded = [];
 
+    protected $casts = [
+        'es_cuenta_madre' => 'boolean',
+    ];
+
+    public function scopeHijosReales($query)
+    {
+        return $query->where('es_cuenta_madre', 0);
+    }
+
     public function correoMadre()
     {
         return $this->belongsTo(CorreoMadre::class, 'id_correo_madre');

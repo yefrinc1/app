@@ -225,10 +225,17 @@ const sumarSaldo = (tipo) => {
                                     </td>
 
                                     <td class="px-4 py-2">
-                                        <Link :href="route('correo-madre.show', correo.id)">
+                                        <Link :href="route('correo-madre.show', correo.id)" class="inline-flex flex-wrap items-center gap-1">
                                             <span class="inline-flex items-center gap-1 bg-gradient-to-r from-red-100 to-red-200 text-red-900 px-3 py-1 rounded-lg text-xs font-bold shadow-sm">
                                                 <i class="fa-solid fa-gamepad"></i>
-                                                {{ correo.correos_juegos_count }}
+                                                {{ correo.hijos_reales_count ?? correo.correos_juegos_count }}/6
+                                            </span>
+                                            <span
+                                                v-if="correo.madre_jugable_count"
+                                                class="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900"
+                                            >
+                                                <i class="fa-solid fa-crown"></i>
+                                                Madre
                                             </span>
                                         </Link>
                                     </td>

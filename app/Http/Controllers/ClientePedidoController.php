@@ -72,6 +72,7 @@ class ClientePedidoController extends Controller
                 'total_comprado' => (float) $cliente->pedidos()->whereNotIn('estado', ['cancelado', 'reembolsado'])->sum('total'),
             ],
             'puedeEditar' => $request->user()->can('clientes.editar'),
+            'puedeGenerarCodigo' => $request->user()->can('codigos.generar'),
             'portal' => [
                 'activo' => (bool) $cliente->user_id,
                 'activado_at' => $cliente->portal_activated_at?->toIso8601String(),

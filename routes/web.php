@@ -87,6 +87,7 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
     Route::resource('/presupuestos', PresupuestoController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('/buscar-juegos-catalogo', [JuegoController::class, 'buscar'])->name('buscar-juegos-catalogo');
     Route::resource('/cierre-caja', CierreCajaController::class);
+    Route::post('/correo-madre/{id}/usar-como-hijo', [CorreoMadreController::class, 'usarComoHijo'])->name('correo-madre.usar-como-hijo');
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);

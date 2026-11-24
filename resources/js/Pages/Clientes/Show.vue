@@ -15,7 +15,7 @@ import ClienteFormModal from './Components/ClienteFormModal.vue';
 import { confirmarOperacion, mostrarCarga, mostrarErrores } from '@/Utils/alertas';
 import { copiarTexto } from '@/Utils/portapapeles';
 
-const props = defineProps({ cliente: Object, pedidos: Object, juegos: Array, resumen: Object, puedeEditar: Boolean, portal: Object });
+const props = defineProps({ cliente: Object, pedidos: Object, juegos: Array, resumen: Object, puedeEditar: Boolean, puedeGenerarCodigo: Boolean, portal: Object });
 const editando = ref(false);
 const juegoSeleccionado = ref(null);
 const clienteVisible = ref({ ...props.cliente });
@@ -26,7 +26,7 @@ const etiqueta = (estado) => String(estado || '').replaceAll('_', ' ');
 const color = (estado) => ({ pagado: 'bg-green-100 text-green-800', completado: 'bg-green-100 text-green-800', parcial: 'bg-amber-100 text-amber-800', en_proceso: 'bg-blue-100 text-blue-800', cancelado: 'bg-red-100 text-red-800', pendiente: 'bg-gray-100 text-gray-800', reembolsado: 'bg-purple-100 text-purple-800', reembolso_parcial: 'bg-orange-100 text-orange-800', pago_parcial: 'bg-amber-100 text-amber-800' }[estado] ?? 'bg-gray-100 text-gray-800');
 const clienteActualizado = (cliente) => { clienteVisible.value = { ...clienteVisible.value, ...cliente }; };
 const abrirJuego = (juego) => { juegoSeleccionado.value = juego; };
-const cerrarJuego = () => { juegoSeleccionado.value = null; };
+const cerrarJuego = () => { juegoSeleccionado.value = null; codigoGeneradoPorCuenta.value = {}; };
 const totalSolicitudes = (item) => (item?.cuentas || []).reduce((total, cuenta) => total + (cuenta.solicitudes?.length || 0), 0);
 const solicitudesJuego = (item) => (item?.cuentas || []).flatMap((cuenta) => cuenta.solicitudes || []);
 const copiarDato = async (valor, titulo) => {
@@ -36,6 +36,47 @@ const copiarDato = async (valor, titulo) => {
         await Swal.fire({ title: `${titulo} copiado`, icon: 'success', timer: 1200, showConfirmButton: false });
     } catch (_) {
         await Swal.fire({ title: titulo, text: valor, icon: 'info', confirmButtonText: 'Cerrar' });
+    }
+};
+const generandoCodigo = ref(false);
+const codigoGeneradoPorCuenta = ref({});
+const codigoDeCuenta = (cuenta) => codigoGeneradoPorCuenta.value[cuenta?.usuario] ?? null;
+const textoCodigo = (codigo) => `🔑 Código de verificación: ${codigo}`;
+const generarCodigoCuenta = async (cuenta) => {
+    if (!cuenta?.usuario || generandoCodigo.value) return;
+    generandoCodigo.value = true;
+    mostrarCarga('Generando código…', 'Buscando un código disponible para esta cuenta.');
+    try {
+        const { data } = await axios.get(route('codigo-generar-disponible'), { params: { correo: cuenta.usuario } });
+        if (!data || (Array.isArray(data) && !data.length) || (!data.codigo && !data.mensaje)) {
+            await Swal.fire({ title: 'Este correo no tiene códigos registrados', icon: 'error', confirmButtonColor: '#dc2626' });
+            return;
+        }
+        if (data.mensaje) {
+            await Swal.fire({ title: data.mensaje, icon: 'warning', confirmButtonColor: '#d97706' });
+            return;
+        }
+        codigoGeneradoPorCuenta.value = {
+            ...codigoGeneradoPorCuenta.value,
+            [cuenta.usuario]: { codigo: data.codigo, ultimo: Boolean(data.ultimo_codigo) },
+        };
+        const resultado = await Swal.fire({
+            title: textoCodigo(data.codigo),
+            text: data.ultimo_codigo ? 'Ya no quedan más códigos. Notificar al administrador.' : '',
+            icon: data.ultimo_codigo ? 'warning' : 'success',
+            confirmButtonText: 'Copiar',
+            confirmButtonColor: '#16a34a',
+            showCancelButton: true,
+            cancelButtonText: 'Cerrar',
+            reverseButtons: true,
+        });
+        if (resultado.isConfirmed) {
+            await copiarDato(textoCodigo(data.codigo), 'Código');
+        }
+    } catch (error) {
+        await mostrarErrores(error.response?.data?.errors ?? { codigo: error.response?.data?.message || 'No se pudo generar el código' }, 'No se pudo generar el código');
+    } finally {
+        generandoCodigo.value = false;
     }
 };
 const generandoAcceso = ref(false);
@@ -194,6 +235,19 @@ const copiarIngreso = async () => {
                                 <div class="flex items-center justify-between gap-3">
                                     <div class="min-w-0"><p class="text-[11px] font-bold uppercase text-gray-500">Código de instalación</p><p class="mt-1 break-all font-semibold text-gray-900">{{ cuenta.codigo || 'No disponible' }}</p></div>
                                     <SecondaryButton v-if="cuenta.codigo" type="button" class="shrink-0" @click="copiarDato(cuenta.codigo, 'Código')">Copiar</SecondaryButton>
+                                </div>
+                                <div v-if="codigoDeCuenta(cuenta)" class="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 p-3">
+                                    <div class="min-w-0">
+                                        <p class="text-[11px] font-bold uppercase text-green-700">Código generado</p>
+                                        <p class="mt-1 font-mono text-xl font-black tracking-wide text-gray-900">{{ codigoDeCuenta(cuenta).codigo }}</p>
+                                        <p v-if="codigoDeCuenta(cuenta).ultimo" class="mt-1 text-xs font-semibold text-amber-700">Ya no quedan más códigos. Notificar al administrador.</p>
+                                    </div>
+                                    <SecondaryButton type="button" class="shrink-0" @click="copiarDato(textoCodigo(codigoDeCuenta(cuenta).codigo), 'Código')">Copiar</SecondaryButton>
+                                </div>
+                                <div v-if="puedeGenerarCodigo && cuenta.usuario" class="pt-1">
+                                    <PrimaryButton type="button" :disabled="generandoCodigo" @click="generarCodigoCuenta(cuenta)">
+                                        <i class="fa-solid fa-key mr-2"></i>{{ generandoCodigo ? 'Generando…' : 'Generar código' }}
+                                    </PrimaryButton>
                                 </div>
                             </div>
                         </div>

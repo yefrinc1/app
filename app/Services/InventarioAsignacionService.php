@@ -26,7 +26,7 @@ class InventarioAsignacionService
     {
         $resultado = DB::transaction(function () use ($pedido, $usuarioId) {
             $pedido = Pedido::query()
-                ->with(['cliente', 'pagos.liquidaciones', 'detalles.entregas'])
+                ->with(['cliente', 'pagos.liquidaciones', 'detalles.entregas', 'detalles.resolucionesOrigen', 'detalles.resolucionReemplazo', 'reembolsos'])
                 ->lockForUpdate()
                 ->findOrFail($pedido->id);
 
@@ -41,6 +41,9 @@ class InventarioAsignacionService
                     'pago' => 'El pedido debe estar pagado o tener un reembolso parcial aprobado.',
                 ]);
             }
+
+            $this->asegurarNetoJumpseller($pedido);
+            $pedido = $this->aplicarExcedenteDePago($pedido, $usuarioId);
 
             $pedido->forceFill(['inventario_intentado_at' => now()])->save();
 
@@ -233,12 +236,115 @@ class InventarioAsignacionService
     }
 
     /**
+     * Si el cliente pagó de más (99.900 del juego vs 100.000 enviados), el
+     * excedente se suma al pedido antes de generar ventas. Un solo juego
+     * queda por lo pagado; varios juegos lo reciben proporcional a su
+     * subtotal y el último cierra el peso. No se aplica si ya hay ventas o
+     * un reemplazo, para no convertir en precio un saldo que debe reembolsarse.
+     */
+    private function aplicarExcedenteDePago(Pedido $pedido, int $usuarioId): Pedido
+    {
+        $hayVentas = Ventas::query()
+            ->where('estado', 'activa')
+            ->whereHas('pedidoDetalle', fn ($query) => $query->where('pedido_id', $pedido->id))
+            ->exists();
+
+        $hayReemplazo = $pedido->detalles->contains(
+            fn (PedidoDetalle $detalle) => $detalle->resolucionesOrigen->where('tipo', 'reemplazo')->isNotEmpty()
+                || $detalle->resolucionReemplazo
+        );
+
+        if ($hayVentas || $hayReemplazo) {
+            return $pedido;
+        }
+
+        $excedente = (int) round((float) $pedido->total_pagado - (float) $pedido->total);
+        if ($excedente <= 0) {
+            return $pedido;
+        }
+
+        $partes = $pedido->detalles
+            ->map(function (PedidoDetalle $detalle) {
+                $reemplazado = (float) $detalle->resolucionesOrigen
+                    ->where('tipo', 'reemplazo')
+                    ->sum('valor_origen');
+
+                return [
+                    'detalle' => $detalle,
+                    'efectivo' => max(0, (float) $detalle->subtotal - $reemplazado),
+                ];
+            })
+            ->filter(fn (array $parte) => $parte['efectivo'] > 0)
+            ->values();
+
+        if ($partes->isEmpty()) {
+            return $pedido;
+        }
+
+        $base = (float) $partes->sum('efectivo');
+        $asignado = 0;
+        $ajustes = [];
+
+        foreach ($partes as $indice => $parte) {
+            $extra = $indice === $partes->count() - 1
+                ? $excedente - $asignado
+                : (int) floor($excedente * $parte['efectivo'] / $base);
+            $asignado += $extra;
+
+            if ($extra <= 0) {
+                continue;
+            }
+
+            $detalle = $parte['detalle'];
+            $nuevoSubtotal = (float) $detalle->subtotal + $extra;
+            $cantidad = max(1, (int) $detalle->cantidad);
+            $detalle->forceFill([
+                'subtotal' => $nuevoSubtotal,
+                'precio_unitario' => (int) round($nuevoSubtotal / $cantidad),
+            ])->save();
+
+            $ajustes[] = [
+                'detalle_id' => $detalle->id,
+                'juego' => $detalle->juego,
+                'extra' => $extra,
+                'subtotal' => $nuevoSubtotal,
+            ];
+        }
+
+        if ($ajustes === []) {
+            return $pedido;
+        }
+
+        $pedido = $this->totales->recalcular($pedido->fresh([
+            'detalles.entregas',
+            'detalles.resolucionesOrigen',
+            'detalles.resolucionReemplazo',
+            'pagos.liquidaciones',
+            'reembolsos',
+        ]));
+
+        PedidoHistorial::create([
+            'pedido_id' => $pedido->id,
+            'usuario_id' => $usuarioId,
+            'evento' => 'excedente_pago_aplicado',
+            'descripcion' => "El pago superó el valor de los juegos por {$excedente}. Ese excedente se sumó al precio de las ventas.",
+            'datos_nuevos' => [
+                'excedente' => $excedente,
+                'ajustes' => $ajustes,
+            ],
+        ]);
+
+        return $pedido;
+    }
+
+    /**
      * Calcula el precio que se guarda en ventas.
      *
-     * El precio bruto conserva la distribución comercial del pedido. Las
-     * deducciones de las liquidaciones (bruto - neto) se reparten por igual
-     * entre todas las unidades del pedido. El residuo se distribuye de a un
-     * peso entre las primeras ventas, por lo que nunca se pierde ni se duplica.
+     * El precio bruto conserva la distribución comercial del pedido, incluido
+     * el excedente de pago ya absorbido. Las deducciones de las liquidaciones
+     * (bruto - neto) se reparten por igual entre todas las unidades del pedido.
+     * El residuo se distribuye de a un peso entre las primeras ventas, por lo
+     * que nunca se pierde ni se duplica.
      *
      * @return array{bruto: int, deduccion: int, neto: int}
      */
@@ -311,6 +417,24 @@ class InventarioAsignacionService
         $residuo = $deduccionTotal % $totalUnidades;
 
         return $base + ($ventasGeneradas < $residuo ? 1 : 0);
+    }
+
+    private function asegurarNetoJumpseller(Pedido $pedido): void
+    {
+        $pedido->loadMissing('pagos.liquidaciones');
+
+        $sinNeto = $pedido->pagos
+            ->where('estado', 'aprobado')
+            ->filter(function ($pago) {
+                return strcasecmp((string) $pago->metodo_pago, 'Jumpseller') === 0
+                    && $pago->liquidaciones->isEmpty();
+            });
+
+        if ($sinNeto->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'pago' => 'Los pagos por Jumpseller deben tener el valor neto registrado antes de generar inventario.',
+            ]);
+        }
     }
 
     private function nombreCliente(Pedido $pedido): string

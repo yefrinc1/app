@@ -132,8 +132,8 @@ class CorreoCreacionCompletaController extends Controller
                 }
             }
 
-            $hijosActuales = CorreoJuego::where('id_correo_madre', $madre->id)->lockForUpdate()->count();
-            $cuposLibres = 6 - $hijosActuales;
+            $hijosActuales = CorreoJuego::where('id_correo_madre', $madre->id)->hijosReales()->lockForUpdate()->count();
+            $cuposLibres = CorreoMadre::CUPO_HIJOS - $hijosActuales;
 
             if ($cuposLibres <= 0) {
                 throw ValidationException::withMessages([
@@ -170,10 +170,7 @@ class CorreoCreacionCompletaController extends Controller
                 $globalHijo->update(['disponible' => 0]);
             }
 
-            $totalHijos = CorreoJuego::where('id_correo_madre', $madre->id)->count();
-            if ($totalHijos >= 6) {
-                $madre->update(['disponible' => 0]);
-            }
+            $madre->sincronizarDisponibilidad();
 
             return $madre->fresh();
         });
@@ -192,13 +189,15 @@ class CorreoCreacionCompletaController extends Controller
     private function madresConCupo()
     {
         return CorreoMadre::query()
-            ->withCount('correosJuegos')
+            ->withCount(['correosJuegos as hijos_count' => fn ($query) => $query->hijosReales()])
             ->with(['correosJuegos' => function ($query) {
-                $query->select('id', 'id_correo_madre', 'correo', 'contrasena', 'fecha_nacimiento', 'juego')
+                $query->select('id', 'id_correo_madre', 'correo', 'contrasena', 'fecha_nacimiento', 'juego', 'es_cuenta_madre')
+                    ->hijosReales()
                     ->latest();
             }])
+            ->withExists('cuentaComoHijo')
             ->where('disponible', 1)
-            ->whereRaw('(select count(*) from correo_juegos where correo_juegos.id_correo_madre = correo_madre.id) < 6');
+            ->whereRaw('(select count(*) from correo_juegos where correo_juegos.id_correo_madre = correo_madre.id and coalesce(correo_juegos.es_cuenta_madre, 0) = 0) < 6');
     }
 
     private function serializarMadres($madres)
@@ -209,7 +208,8 @@ class CorreoCreacionCompletaController extends Controller
                 'correo' => $madre->correo,
                 'contrasena' => $madre->contrasena,
                 'saldo_usd' => $madre->saldo_usd,
-                'hijos_count' => $madre->correos_juegos_count,
+                'hijos_count' => $madre->hijos_count,
+                'usa_madre_como_hijo' => (bool) $madre->cuenta_como_hijo_exists,
                 'hijos' => $madre->correosJuegos->map(function (CorreoJuego $hijo) {
                     return [
                         'id' => $hijo->id,

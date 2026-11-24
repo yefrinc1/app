@@ -205,6 +205,9 @@ const guardar = async () => {
                                 <div class="xl:col-span-2"><FileInput :id="`comprobante-${indice}`" label="Comprobante obligatorio" :file-name="pago.comprobante?.name" :error="form.errors[`pagos.${indice}.comprobante`]" required @change="cargarArchivo($event, indice)" /></div>
                                 <div class="md:col-span-2 xl:col-span-6"><InputLabel :for="`observacion-pago-${indice}`" value="Observaciones" /><TextInput :id="`observacion-pago-${indice}`" v-model="pago.observaciones" class="mt-1 block w-full" placeholder="Opcional" /></div>
                             </div>
+                            <p v-if="pago.metodo_pago === 'Jumpseller'" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                En pagos Jumpseller hay que registrar el valor neto después de aprobar el pago. Sin ese registro no se podrá generar inventario.
+                            </p>
                         </article>
                     </div>
                 </SectionCard>

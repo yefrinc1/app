@@ -27,7 +27,14 @@ const asignadas = computed(() => props.pedido.detalles.reduce((suma, detalle) =>
 const entregadas = computed(() => props.pedido.detalles.reduce((suma, detalle) => suma + entregasActivas(detalle).filter((entrega) => entrega.estado === 'entregada').length, 0));
 const pendientesInventario = computed(() => props.pedido.detalles.reduce((suma, detalle) => suma + cantidadPendienteInventario(detalle), 0));
 const pedidoCerrado = computed(() => ['cancelado', 'reembolsado'].includes(props.pedido.estado) || props.pedido.estado_financiero === 'reembolsado');
-const puedeGenerar = computed(() => ['pagado', 'reembolso_parcial'].includes(props.pedido.estado_financiero) && !pedidoCerrado.value && pendientesInventario.value > 0);
+const esPagoJumpseller = (pago) => String(pago.metodo_pago || '').toLowerCase() === 'jumpseller';
+const pagosJumpsellerSinNeto = computed(() => (props.pedido.pagos || []).filter((pago) =>
+    pago.estado === 'aprobado'
+    && esPagoJumpseller(pago)
+    && !(pago.liquidaciones || []).length
+));
+const faltaNetoJumpseller = computed(() => pagosJumpsellerSinNeto.value.length > 0);
+const puedeGenerar = computed(() => ['pagado', 'reembolso_parcial'].includes(props.pedido.estado_financiero) && !pedidoCerrado.value && pendientesInventario.value > 0 && !faltaNetoJumpseller.value);
 const puedeCompletar = computed(() => asignadas.value === solicitadas.value && entregadas.value < solicitadas.value && !pedidoCerrado.value);
 const etiquetaEstado = (estado) => ({
     pendiente_revision: 'Pendiente de revisión',
@@ -39,6 +46,11 @@ const etiquetaEstado = (estado) => ({
 }[estado] ?? String(estado || '').replaceAll('_', ' '));
 
 const generar = async () => {
+    if (faltaNetoJumpseller.value) {
+        await mostrarErrores({ pago: 'Los pagos por Jumpseller deben tener el valor neto registrado antes de generar inventario.' }, 'Falta el registro neto');
+        return;
+    }
+
     const confirmado = await confirmarOperacion({
         titulo: '¿Generar ventas disponibles?',
         texto: 'El sistema buscará cuentas y códigos para todos los juegos pendientes.',
@@ -163,6 +175,14 @@ const copiar = async (detalle, entrega) => {
             class="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm font-semibold text-purple-800"
         >
             El pedido está cerrado por reembolso total. No se pueden generar ni confirmar entregas.
+        </div>
+
+        <div
+            v-if="faltaNetoJumpseller"
+            class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+            <p class="font-bold">Falta el registro neto de Jumpseller</p>
+            <p class="mt-1">Este pedido tiene pago(s) por Jumpseller. Debes registrar el valor neto en el pago antes de generar inventario.</p>
         </div>
 
         <div

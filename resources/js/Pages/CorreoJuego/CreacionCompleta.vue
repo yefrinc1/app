@@ -442,6 +442,9 @@ const guardar = async () => {
                                     · {{ madreSeleccionada.hijos_count }}/6 hijos
                                     · {{ madreSeleccionada.saldo_usd }} USD
                                 </p>
+                                <p v-if="madreSeleccionada.usa_madre_como_hijo" class="mt-1 text-sm font-semibold text-amber-800">
+                                    Esta madre ya se usa como hijo. No ocupa cupo de los 6.
+                                </p>
                             </div>
                             <SecondaryButton type="button" @click="limpiarMadre">Cambiar madre</SecondaryButton>
                         </div>

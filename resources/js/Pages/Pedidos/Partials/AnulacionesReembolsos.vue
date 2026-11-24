@@ -132,6 +132,7 @@ const prepararReembolsoAnulacion = async () => {
 
     entregaResolver.value = null;
     modoResolucion.value = '';
+    expandirSeccion();
     await nextTick();
     formularioReembolso.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
@@ -223,15 +224,28 @@ const relacionarJuego = async (reembolso) => {
 };
 const dinero = (valor, moneda = props.pedido.moneda) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: moneda, maximumFractionDigits: 0 }).format(Number(valor || 0));
 const color = (estado) => ({ aprobado: 'bg-green-100 text-green-700', rechazado: 'bg-red-100 text-red-700', pendiente: 'bg-amber-100 text-amber-700' }[estado] || 'bg-gray-100 text-gray-700');
+const seccionMinimizada = ref(true);
+const expandirSeccion = () => { seccionMinimizada.value = false; };
 </script>
 
 <template>
     <section class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-        <div>
-            <h2 class="font-black text-gray-900">↩️ Anulaciones y reembolsos</h2>
-            <p class="text-sm text-gray-500">Anula la venta, elimina su fila original y conserva toda la auditoría del pedido.</p>
-        </div>
+        <button
+            type="button"
+            class="flex w-full items-start justify-between gap-3 rounded-xl text-left transition hover:bg-gray-50"
+            :aria-expanded="!seccionMinimizada"
+            @click="seccionMinimizada = !seccionMinimizada"
+        >
+            <div>
+                <h2 class="font-black text-gray-900">↩️ Anulaciones y reembolsos</h2>
+                <p class="text-sm text-gray-500">Anula la venta, elimina su fila original y conserva toda la auditoría del pedido.</p>
+            </div>
+            <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm">
+                <i class="fa-solid fa-chevron-down text-sm transition-transform duration-200" :class="{ 'rotate-180': !seccionMinimizada }"></i>
+            </span>
+        </button>
 
+        <div v-show="!seccionMinimizada">
         <div
             v-if="!can('pedidos.anular') && !can('reembolsos.crear') && !can('reembolsos.revisar')"
             class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900"
@@ -321,6 +335,7 @@ const color = (estado) => ({ aprobado: 'bg-green-100 text-green-700', rechazado:
                     <div class="flex items-end"><PrimaryButton class="w-full justify-center" :disabled="reembolsoForm.processing || disponibleReembolso <= 0"><i class="fa-solid fa-floppy-disk mr-2"></i>{{ reembolsoForm.processing ? 'Registrando…' : 'Registrar' }}</PrimaryButton></div>
                 </div>
             </form>
+        </div>
         </div>
 
         <Modal :show="Boolean(entregaAnular)" @close="entregaAnular = null">
