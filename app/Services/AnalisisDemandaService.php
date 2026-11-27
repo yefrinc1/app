@@ -94,7 +94,7 @@ class AnalisisDemandaService
             $filas = $filas->where('estado', $filtros['estado']);
         }
         if (! empty($filtros['reposicion'])) {
-            $filas = $filas->where('cuentas_recomendadas', '>', 0);
+            $filas = $filas->filter(fn ($fila) => (int) $fila['cuentas_recomendadas'] > 0);
         }
 
         $orden = in_array($filtros['orden'] ?? '', ['juego', 'ventas_totales', 'cupos_ps4', 'cupos_ps5', 'demanda_estimada', 'cuentas_recomendadas', 'estado'], true)

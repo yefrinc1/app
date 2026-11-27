@@ -41,13 +41,21 @@ const detalle = ref(null);
 const modalAbierto = ref(false);
 const cantidadesPlan = reactive({});
 
-const paramsLimpios = () => Object.fromEntries(Object.entries(form).filter(([, valor]) => valor !== '' && valor !== false && valor !== null));
+const paramsLimpios = () => {
+    const params = Object.fromEntries(Object.entries(form).filter(([, valor]) => valor !== '' && valor !== false && valor !== null));
+    if (form.reposicion) params.reposicion = 1;
+    return params;
+};
 let temporizador;
 const consultar = (inmediato = false) => {
     clearTimeout(temporizador);
     temporizador = setTimeout(() => router.get(route('inventario.analisis.index'), paramsLimpios(), {
         preserveState: true, preserveScroll: true, replace: true,
     }), inmediato ? 0 : 350);
+};
+const cambiarReposicion = (valor) => {
+    form.reposicion = Boolean(valor);
+    consultar(true);
 };
 const limpiar = () => {
     Object.assign(form, { periodo: '30', desde: '', hasta: '', consola: '', licencia: '', juego: '', estado: '', reposicion: false, dias_objetivo: '30', seguridad: '20', orden: 'ventas_totales', direccion: 'desc' });
@@ -170,7 +178,7 @@ const detalleChart = computed(() => ({
                         <div><InputLabel for="juego-analisis" value="Videojuego" /><TextInput id="juego-analisis" v-model="form.juego" class="mt-1 block w-full" placeholder="Buscar título..." @input="consultar()" /></div>
                         <div><InputLabel for="dias-objetivo" value="Días de abastecimiento" /><TextInput id="dias-objetivo" v-model="form.dias_objetivo" type="number" min="1" max="365" class="mt-1 block w-full" @change="consultar(true)" /></div>
                         <div><InputLabel for="porcentaje-seguridad" value="Porcentaje de seguridad" /><div class="relative"><TextInput id="porcentaje-seguridad" v-model="form.seguridad" type="number" min="0" max="100" step="5" class="mt-1 block w-full pr-10" @change="consultar(true)" /><span class="pointer-events-none absolute inset-y-0 right-4 flex items-center pt-1 font-bold text-amber-600">%</span></div></div>
-                        <div class="flex items-end"><label class="flex min-h-11 items-center gap-3 rounded-xl border border-red-100 bg-red-50/50 px-4 py-2.5 text-sm font-bold text-gray-700"><Checkbox v-model:checked="form.reposicion" @change="consultar(true)" /> Sólo requieren reposición</label></div>
+                        <div class="flex items-end"><label class="flex min-h-11 items-center gap-3 rounded-xl border border-red-100 bg-red-50/50 px-4 py-2.5 text-sm font-bold text-gray-700"><Checkbox :checked="form.reposicion" @update:checked="cambiarReposicion" /> Sólo requieren reposición</label></div>
                         <div class="flex flex-col gap-3 pt-1 sm:flex-row lg:col-span-4">
                             <PrimaryButton type="submit" class="w-full justify-center sm:w-auto"><i class="fa-solid fa-magnifying-glass mr-2"></i>Consultar</PrimaryButton>
                             <SecondaryButton type="button" class="w-full justify-center sm:w-auto" @click="limpiar"><i class="fa-solid fa-eraser mr-2"></i>Limpiar</SecondaryButton>
