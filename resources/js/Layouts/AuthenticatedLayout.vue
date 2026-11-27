@@ -140,6 +140,13 @@ const menuSections = computed(() => [
                 permission: 'inventario.consultar',
             },
             {
+                label: 'Análisis de demanda',
+                icon: '📈',
+                route: 'inventario.analisis.index',
+                active: 'inventario.analisis.*',
+                permission: 'inventario.analisis.ver',
+            },
+            {
                 label: 'Titulos de juegos',
                 icon: '🎮',
                 route: 'juegos.index',
@@ -739,13 +746,13 @@ const closeProfileMenu = () => {
                         </Link>
 
                         <Link
-                            v-if="can('usuarios.crear')"
-                            :href="route('agregar-usuario.create')"
+                            v-if="can('usuarios.administrar')"
+                            :href="route('administracion.accesos.index')"
                             class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-100"
                             @click="closeProfileMenu"
                         >
-                            <span>➕</span>
-                            <span>Agregar usuario</span>
+                            <span>🛡️</span>
+                            <span>Roles y permisos</span>
                         </Link>
 
                         <div class="my-1 border-t border-gray-200" />

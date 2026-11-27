@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 
@@ -14,9 +14,13 @@ class AgregarUsuarioController extends Controller
     {
         $this->middleware('can:usuarios.crear', ['only' => ['create', 'store']]);
     }
-    
-    public function create()
+
+    public function create(Request $request)
     {
+        if ($request->user()->can('usuarios.administrar')) {
+            return redirect()->route('administracion.accesos.index', ['abrir' => 'crear']);
+        }
+
         return Inertia::render('AgregarUsuario');
     }
 

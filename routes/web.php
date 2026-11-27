@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\AdministracionAccesosController;
 use App\Http\Controllers\AgregarUsuarioController;
+use App\Http\Controllers\AnalisisDemandaController;
 use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\CodigoVerificacionController;
 use App\Http\Controllers\CorreoCreacionCompletaController;
@@ -91,7 +93,22 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
     Route::get('/correo-madre/quitar-hijo/{id}', [CorreoMadreController::class, 'quitarHijo'])->name('correo-madre.quitarHijo');
     Route::resource('/pagos', PagoController::class);
     Route::resource('/agregar-usuario', AgregarUsuarioController::class)->only(['create', 'store']);
+    Route::prefix('administracion/accesos')->name('administracion.accesos.')->group(function () {
+        Route::get('/', [AdministracionAccesosController::class, 'index'])->name('index');
+        Route::post('/permisos', [AdministracionAccesosController::class, 'storePermission'])->name('permisos.store');
+        Route::patch('/permisos/{permission}', [AdministracionAccesosController::class, 'updatePermission'])->name('permisos.update');
+        Route::delete('/permisos/{permission}', [AdministracionAccesosController::class, 'destroyPermission'])->name('permisos.destroy');
+        Route::post('/roles', [AdministracionAccesosController::class, 'storeRole'])->name('roles.store');
+        Route::patch('/roles/{role}', [AdministracionAccesosController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{role}', [AdministracionAccesosController::class, 'destroyRole'])->name('roles.destroy');
+        Route::put('/roles/{role}/permisos', [AdministracionAccesosController::class, 'syncRolePermissions'])->name('roles.permisos');
+        Route::post('/usuarios', [AdministracionAccesosController::class, 'storeUser'])->name('usuarios.store');
+        Route::put('/usuarios/{user}', [AdministracionAccesosController::class, 'syncUserAccess'])->name('usuarios.update');
+    });
     Route::get('/consultar-inventario', [CorreoJuegoController::class, 'consultarInventario'])->middleware('can:inventario.consultar')->name('consultar-inventario');
+    Route::get('/inventario/analisis-demanda', [AnalisisDemandaController::class, 'index'])->name('inventario.analisis.index');
+    Route::get('/inventario/analisis-demanda/exportar', [AnalisisDemandaController::class, 'exportar'])->name('inventario.analisis.exportar');
+    Route::get('/inventario/analisis-demanda/{juego}', [AnalisisDemandaController::class, 'show'])->name('inventario.analisis.show');
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');

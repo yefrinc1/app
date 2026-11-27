@@ -43,6 +43,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Inventario
             'inventario.consultar',
+            'inventario.analisis.ver',
             'inventario.datos.completos',
             'inventario.titulos',
 
@@ -76,6 +77,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Usuarios
             'usuarios.crear',
+            'usuarios.administrar',
         ];
 
         $permisosAsesor = [
@@ -119,23 +121,20 @@ class RolesAndPermissionsSeeder extends Seeder
             ]);
         }
 
-        $administrador = Role::firstOrCreate([
-            'name' => 'administrador',
-            'guard_name' => 'web',
-        ]);
+        $administrador = Role::query()->where('guard_name', 'web')
+            ->whereRaw('LOWER(name) = ?', ['administrador'])->first()
+            ?? Role::create(['name' => 'administrador', 'guard_name' => 'web']);
 
-        $asesor = Role::firstOrCreate([
-            'name' => 'asesor',
-            'guard_name' => 'web',
-        ]);
+        $asesor = Role::query()->where('guard_name', 'web')
+            ->whereRaw('LOWER(name) = ?', ['asesor'])->first()
+            ?? Role::create(['name' => 'asesor', 'guard_name' => 'web']);
 
         $administrador->syncPermissions($permisosAdministrador);
         $asesor->syncPermissions($permisosAsesor);
 
-        $cliente = Role::firstOrCreate([
-            'name' => 'cliente',
-            'guard_name' => 'web',
-        ]);
+        $cliente = Role::query()->where('guard_name', 'web')
+            ->whereRaw('LOWER(name) = ?', ['cliente'])->first()
+            ?? Role::create(['name' => 'cliente', 'guard_name' => 'web']);
 
         $cliente->syncPermissions([]);
 

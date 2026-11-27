@@ -493,22 +493,20 @@ class PortalClienteController extends Controller
 
         if ($esPrimaria) {
             return [
-                'Durante el inicio de sesión, agrega el usuario como nuevo. No ingreses como invitado.',
-                'Sigue todos los pasos del video de instalación correspondiente a tu consola.',
-                'Cierra la sesión de la cuenta entregada sin eliminar el usuario de la consola.',
                 $esPs5
-                    ? 'La imagen de referencia muestra la opción Cerrar sesión. Selecciónala y después toma una foto clara que permita verificar que la sesión ya quedó cerrada; no basta con fotografiar el botón antes de cerrarla.'
-                    : 'Toma una foto clara de Administración de cuentas donde aparezca Iniciar sesión, como en el ejemplo: esto permite verificar que la sesión de la cuenta entregada está cerrada.',
-                'Sube aquí tu propia foto de la consola al finalizar. El equipo MRJUEGOZ la revisará para validar la instalación y brindarte la garantía correspondiente.',
+                    ? 'La foto debe mostrar claramente que la sesión de la cuenta entregada ya está cerrada.'
+                    : 'La foto debe mostrar Administración de cuentas con la opción Iniciar sesión visible.',
+                'La pantalla debe verse completa, enfocada y sin reflejos que oculten la información.',
+                'Sube una foto propia de tu consola; no uses capturas del tutorial ni imágenes de ejemplo.',
             ];
         }
 
         return [
-            'Sigue el tutorial y agrega el usuario como nuevo, nunca como invitado.',
+            'Graba un video propio, continuo y sin cortes, mostrando claramente la pantalla de la consola.',
             $esPs5
-                ? 'En el minuto 1:20 desactiva Uso compartido de consola y juego offline.'
-                : 'En el minuto 0:40 desactiva la cuenta como PS4 principal.',
-            'Graba un video propio, continuo y sin cortes: pantalla antes, desactivación y estado final. No subas una foto ni el video del tutorial.',
+                ? 'En el minuto 1:20 del tutorial se muestra la parte que debes grabar: debe verse que Uso compartido de consola y juego offline está desactivado.'
+                : 'En el minuto 0:40 del tutorial se muestra la parte que debes grabar: debe verse que la cuenta no está activada como PS4 principal.',
+            'Debe verse el estado final completo y legible. No subas una foto ni el video del tutorial.',
         ];
     }
 
