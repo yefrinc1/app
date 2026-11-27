@@ -54,6 +54,7 @@ if (props.mensaje_correo_creado != '') {
 
 const saldoMadreDisponible = ref(0);
 const correoMadreNombre = ref('');
+const codigosGuardados = ref(0);
 
 const editarModal = (correo) => {
     form.id = correo.id;
@@ -68,6 +69,11 @@ const editarModal = (correo) => {
     form.secundaria = correo.secundaria;
     saldoMadreDisponible.value = Number(correo.correo_madre?.saldo_usd ?? 0) + Number(correo.precio_usd ?? 0);
     correoMadreNombre.value = correo.correo_madre?.correo ?? `Madre #${correo.id_correo_madre}`;
+    codigosGuardados.value = Number(
+        correo.es_cuenta_madre
+            ? Number(correo.correo_madre?.codigos_disponibles_count || 0) + Number(correo.codigos_disponibles_count || 0)
+            : correo.codigos_disponibles_count
+    ) || 0;
     confirmingCorreoEditar.value = true;
     nextTick(() => correoInput.value?.focus());
 };
@@ -114,6 +120,7 @@ const editarCorreo = () => {
 
 const closeModal = () => {
     confirmingCorreoEditar.value = false;
+    codigosGuardados.value = 0;
     form.reset();
 };
 
@@ -379,7 +386,17 @@ const formatearFecha = (fecha) => {
                     </div>
 
                     <div class="mt-6">
-                        <InputLabel for="codigo" value="Codigos" />
+                        <InputLabel for="codigo" value="Códigos de verificación" />
+
+                        <div class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                            <p class="font-bold">
+                                <i class="fa-solid fa-shield-halved mr-2"></i>
+                                {{ codigosGuardados }} códigos disponibles guardados
+                            </p>
+                            <p class="mt-1 text-xs text-blue-700">
+                                El campo permanece vacío. Pega códigos únicamente cuando quieras reemplazar el banco actual.
+                            </p>
+                        </div>
 
                         <div class="relative">
                             <textarea
@@ -387,7 +404,7 @@ const formatearFecha = (fecha) => {
                                 ref="codigo"
                                 rows="4"
                                 v-model="form.codigo"
-                                placeholder="Ingresa el código..."
+                                placeholder="Pega los nuevos códigos, uno por línea..."
                                 class="
                                     mt-1
                                     block

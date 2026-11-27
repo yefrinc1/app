@@ -8,6 +8,7 @@ use App\Models\Ventas;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 
 class CierreCajaController extends Controller
 {
@@ -19,22 +20,129 @@ class CierreCajaController extends Controller
 
     public function index(Request $request)
     {
-        $search = $request->get('search', '');
-        $mensaje = $request->get('mensaje', '');
-    
-        $cierreCajas = CierreCaja::when($search, function ($query, $search) {
-            return $query->where('fecha', $search);
-        })
-        ->orderBy('fecha', 'desc')
-        ->limit(10)
-        ->get();
-    
-    
+        $filtros = array_merge([
+            'periodo' => '90',
+            'resultado' => '',
+            'buscar' => '',
+        ], $request->validate([
+            'periodo' => ['nullable', 'in:7,30,90,180,365,todo,personalizado'],
+            'desde' => ['nullable', 'date'],
+            'hasta' => ['nullable', 'date'],
+            'resultado' => ['nullable', 'in:positivo,negativo,ajuste'],
+            'buscar' => ['nullable', 'string', 'max:150'],
+        ]));
+        [$desde, $hasta] = $this->periodo($filtros);
+        $filtros['buscar'] = trim((string) $filtros['buscar']);
+
+        $base = CierreCaja::query()
+            ->when($desde, fn ($query) => $query->whereDate('fecha', '>=', $desde->toDateString()))
+            ->when($hasta, fn ($query) => $query->whereDate('fecha', '<=', $hasta->toDateString()))
+            ->when($filtros['buscar'] !== '', fn ($query) => $query->where('observaciones', 'like', "%{$filtros['buscar']}%"))
+            ->when($filtros['resultado'] === 'positivo', fn ($query) => $query->whereRaw('(saldo_final - saldo_inicial) >= 0'))
+            ->when($filtros['resultado'] === 'negativo', fn ($query) => $query->whereRaw('(saldo_final - saldo_inicial) < 0'))
+            ->when($filtros['resultado'] === 'ajuste', fn ($query) => $query->whereRaw('(saldo_final - (saldo_inicial + ingresos - egresos)) <> 0'));
+
+        $datos = (clone $base)->orderBy('fecha')->get();
+        $resumen = $this->resumen($datos);
+        $cierres = (clone $base)->orderByDesc('fecha')->paginate(15)->appends($request->query());
+        $dias = $desde && $hasta ? $desde->diffInDays($hasta) + 1 : null;
+        $agruparPorMes = $dias === null || $dias > 180;
+        $evolucion = $datos
+            ->groupBy(fn ($cierre) => $agruparPorMes ? CarbonImmutable::parse($cierre->fecha)->format('Y-m') : CarbonImmutable::parse($cierre->fecha)->toDateString())
+            ->map(fn ($grupo, $periodo) => [
+                'periodo' => $periodo,
+                'ingresos' => (int) $grupo->sum('ingresos'),
+                'egresos' => (int) $grupo->sum('egresos'),
+                'flujo' => (int) $grupo->sum(fn ($cierre) => $cierre->ingresos - $cierre->egresos),
+                'saldo_final' => (int) $grupo->sortBy('fecha')->last()->saldo_final,
+            ])->values();
+
+        $comparacion = ['disponible' => false, 'ingresos' => null, 'egresos' => null, 'flujo' => null];
+        if ($desde && $hasta && ($filtros['periodo'] ?? '') !== 'personalizado') {
+            $anteriorHasta = $desde->subDay();
+            $anteriorDesde = $anteriorHasta->subDays($dias - 1);
+            $anterior = CierreCaja::query()
+                ->whereBetween('fecha', [$anteriorDesde->toDateString(), $anteriorHasta->toDateString()])
+                ->when($filtros['buscar'] !== '', fn ($query) => $query->where('observaciones', 'like', "%{$filtros['buscar']}%"))
+                ->when($filtros['resultado'] === 'positivo', fn ($query) => $query->whereRaw('(saldo_final - saldo_inicial) >= 0'))
+                ->when($filtros['resultado'] === 'negativo', fn ($query) => $query->whereRaw('(saldo_final - saldo_inicial) < 0'))
+                ->when($filtros['resultado'] === 'ajuste', fn ($query) => $query->whereRaw('(saldo_final - (saldo_inicial + ingresos - egresos)) <> 0'))
+                ->get();
+            $resumenAnterior = $this->resumen($anterior);
+            $comparacion = [
+                'disponible' => true,
+                'ingresos' => $this->variacion($resumen['ingresos'], $resumenAnterior['ingresos']),
+                'egresos' => $this->variacion($resumen['egresos'], $resumenAnterior['egresos']),
+                'flujo' => $this->variacion($resumen['flujo_neto'], $resumenAnterior['flujo_neto']),
+            ];
+        }
+
         return Inertia::render('CierreCaja/Index', [
-            'cierre_cajas' => $cierreCajas,
-            'search' => $search,
-            'mensaje' => $mensaje,
+            'cierre_cajas' => $cierres,
+            'filtros' => $filtros,
+            'resumen' => $resumen,
+            'comparacion' => $comparacion,
+            'graficos' => [
+                'evolucion' => $evolucion,
+                'distribucion' => [
+                    'ingresos' => $resumen['ingresos'],
+                    'egresos' => $resumen['egresos'],
+                    'ajustes' => abs($resumen['ajustes']),
+                ],
+            ],
+            'periodo' => [
+                'desde' => $desde?->toDateString(),
+                'hasta' => $hasta?->toDateString(),
+                'dias' => $dias,
+            ],
+            'mensaje' => $request->get('mensaje', ''),
         ]);
+    }
+
+    private function periodo(array $filtros): array
+    {
+        if (($filtros['periodo'] ?? '90') === 'todo') {
+            return [null, null];
+        }
+        if (($filtros['periodo'] ?? '') === 'personalizado' && ! empty($filtros['desde']) && ! empty($filtros['hasta'])) {
+            $desde = CarbonImmutable::parse($filtros['desde']);
+            $hasta = CarbonImmutable::parse($filtros['hasta']);
+
+            return $desde->lte($hasta) ? [$desde, $hasta] : [$hasta, $desde];
+        }
+
+        $dias = in_array((int) ($filtros['periodo'] ?? 90), [7, 30, 90, 180, 365], true) ? (int) $filtros['periodo'] : 90;
+        $hasta = CarbonImmutable::today();
+
+        return [$hasta->subDays($dias - 1), $hasta];
+    }
+
+    private function resumen($cierres): array
+    {
+        $ingresos = (int) $cierres->sum('ingresos');
+        $egresos = (int) $cierres->sum('egresos');
+        $ajustes = (int) $cierres->sum(fn ($cierre) => $cierre->saldo_final - ($cierre->saldo_inicial + $cierre->ingresos - $cierre->egresos));
+        $ultimo = $cierres->sortByDesc('fecha')->first();
+
+        return [
+            'cierres' => $cierres->count(),
+            'ingresos' => $ingresos,
+            'egresos' => $egresos,
+            'flujo_neto' => $ingresos - $egresos,
+            'ajustes' => $ajustes,
+            'saldo_actual' => (int) ($ultimo?->saldo_final ?? 0),
+            'promedio_ingresos' => $cierres->count() ? (int) round($ingresos / $cierres->count()) : 0,
+            'cierres_positivos' => $cierres->filter(fn ($cierre) => $cierre->saldo_final - $cierre->saldo_inicial >= 0)->count(),
+        ];
+    }
+
+    private function variacion(int $actual, int $anterior): float
+    {
+        if ($anterior === 0) {
+            return $actual === 0 ? 0 : 100;
+        }
+
+        return round((($actual - $anterior) / abs($anterior)) * 100, 1);
     }
 
     public function create(Request $request)

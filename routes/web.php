@@ -22,6 +22,7 @@ use App\Http\Controllers\PortalGarantiaController;
 use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\ProductosJumpsellerController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RotacionInventarioController;
 use App\Http\Controllers\VentasController;
 use App\Http\Middleware\EnsureClientePortal;
 use App\Http\Middleware\EnsurePanelAdministrativo;
@@ -109,6 +110,8 @@ Route::middleware(['auth', EnsurePanelAdministrativo::class])->group(function ()
     Route::get('/inventario/analisis-demanda', [AnalisisDemandaController::class, 'index'])->name('inventario.analisis.index');
     Route::get('/inventario/analisis-demanda/exportar', [AnalisisDemandaController::class, 'exportar'])->name('inventario.analisis.exportar');
     Route::get('/inventario/analisis-demanda/{juego}', [AnalisisDemandaController::class, 'show'])->name('inventario.analisis.show');
+    Route::get('/inventario/rotacion', [RotacionInventarioController::class, 'index'])->name('inventario.rotacion.index');
+    Route::get('/inventario/rotacion/exportar', [RotacionInventarioController::class, 'exportar'])->name('inventario.rotacion.exportar');
     Route::get('/estadistica-juegos', [EstadisticaController::class, 'estadisticaJuegos'])->name('estadistica-juegos');
     Route::get('/resumen-mensual', [EstadisticaController::class, 'resumenMensual'])->name('resumen-mensual');
     Route::get('/productos-oferta-jumpseller', [ProductosJumpsellerController::class, 'index'])->name('productos-oferta-jumpseller');

@@ -1,11 +1,14 @@
 <script setup>
-import { defineProps } from "vue";
+import { computed, ref, watch } from "vue";
 import { Head, useForm } from "@inertiajs/vue3";
+import { Bar, Doughnut } from 'vue-chartjs';
+import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
-import { ref, watch } from "vue";
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import axios from "axios";
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip);
 
 const searchQuery = ref('');
 
@@ -13,6 +16,8 @@ const props = defineProps({
     juegos: Object,
     search: String,
     modelValue: String,
+    resumen: Object,
+    graficos: Object,
 });
 
 const form = useForm({});
@@ -115,6 +120,38 @@ const iconoDiferencia = (diferencia) => {
 
     return 'fa-solid fa-minus';
 };
+
+const etiquetasComparativo = computed(() => props.graficos.comparativo.map((item) => item.juego));
+const comparativoData = computed(() => ({
+    labels: etiquetasComparativo.value,
+    datasets: [
+        { label: 'Invertido', data: props.graficos.comparativo.map((item) => item.comprado), backgroundColor: '#f59e0b', borderRadius: 6 },
+        { label: 'Vendido', data: props.graficos.comparativo.map((item) => item.vendido), backgroundColor: '#16a34a', borderRadius: 6 },
+    ],
+}));
+const rentabilidadData = computed(() => ({
+    labels: props.graficos.rentabilidad.map((item) => item.juego),
+    datasets: [{
+        label: 'Utilidad acumulada',
+        data: props.graficos.rentabilidad.map((item) => item.diferencia),
+        backgroundColor: props.graficos.rentabilidad.map((item) => item.diferencia >= 0 ? '#16a34a' : '#dc2626'),
+        borderRadius: 6,
+    }],
+}));
+const distribucionData = computed(() => ({
+    labels: ['Rentables', 'En equilibrio', 'Por recuperar'],
+    datasets: [{
+        data: [props.graficos.distribucion.rentables, props.graficos.distribucion.equilibrio, props.graficos.distribucion.por_recuperar],
+        backgroundColor: ['#16a34a', '#94a3b8', '#dc2626'],
+    }],
+}));
+const opcionesGrafico = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { beginAtZero: true, ticks: { callback: (valor) => `$${Number(valor).toLocaleString('es-CO')}` } } },
+};
+const opcionesDona = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
 </script>
 
 <template>
@@ -149,9 +186,51 @@ const iconoDiferencia = (diferencia) => {
                                 </p>
 
                                 <p class="text-2xl font-bold text-gray-900">
-                                    {{ props.juegos.data.length }}
+                                    {{ resumen.juegos }}
                                 </p>
                             </div>
+                        </div>
+
+                        <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <article class="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                                <p class="text-sm font-semibold text-amber-700">Inversión acumulada</p>
+                                <p class="mt-1 text-2xl font-black text-amber-900">${{ formatoCop(resumen.comprado) }}</p>
+                            </article>
+                            <article class="rounded-xl border border-green-100 bg-green-50 p-4">
+                                <p class="text-sm font-semibold text-green-700">Ventas acumuladas</p>
+                                <p class="mt-1 text-2xl font-black text-green-900">${{ formatoCop(resumen.vendido) }}</p>
+                            </article>
+                            <article class="rounded-xl border p-4" :class="resumen.diferencia >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-red-100 bg-red-50'">
+                                <p class="text-sm font-semibold" :class="resumen.diferencia >= 0 ? 'text-emerald-700' : 'text-red-700'">Utilidad acumulada</p>
+                                <p class="mt-1 text-2xl font-black" :class="resumen.diferencia >= 0 ? 'text-emerald-900' : 'text-red-900'">${{ formatoCop(resumen.diferencia) }}</p>
+                            </article>
+                            <article class="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                                <p class="text-sm font-semibold text-blue-700">Retorno sobre inversión</p>
+                                <p class="mt-1 text-2xl font-black text-blue-900">{{ resumen.roi }}%</p>
+                                <p class="mt-1 text-xs text-blue-600">{{ resumen.rentables }} rentables · {{ resumen.por_recuperar }} por recuperar</p>
+                            </article>
+                        </div>
+
+                        <div class="mb-6 grid gap-5 xl:grid-cols-2">
+                            <article class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                                <h3 class="font-bold text-gray-900">Inversión frente a ventas</h3>
+                                <p class="mt-1 text-sm text-gray-500">Los 10 juegos con mayores ventas acumuladas.</p>
+                                <div class="mt-4 h-80"><Bar :data="comparativoData" :options="opcionesGrafico" /></div>
+                            </article>
+                            <article class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                                <h3 class="font-bold text-gray-900">Juegos con mayor utilidad</h3>
+                                <p class="mt-1 text-sm text-gray-500">Diferencia entre lo vendido y lo invertido.</p>
+                                <div class="mt-4 h-80"><Bar :data="rentabilidadData" :options="opcionesGrafico" /></div>
+                            </article>
+                            <article class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm xl:col-span-2">
+                                <div class="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_320px]">
+                                    <div>
+                                        <h3 class="font-bold text-gray-900">Estado de recuperación</h3>
+                                        <p class="mt-1 text-sm leading-6 text-gray-500">Compara cuántos títulos ya recuperaron la inversión, están en equilibrio o todavía tienen saldo por recuperar.</p>
+                                    </div>
+                                    <div class="h-64"><Doughnut :data="distribucionData" :options="opcionesDona" /></div>
+                                </div>
+                            </article>
                         </div>
 
                         <!-- Buscador -->
@@ -207,6 +286,7 @@ const iconoDiferencia = (diferencia) => {
                                         <th class="px-4 py-2 text-left">Comprado</th>
                                         <th class="px-4 py-2 text-left">Vendido</th>
                                         <th class="px-4 py-2 text-left">Diferencia</th>
+                                        <th class="px-4 py-2 text-left">ROI</th>
                                         <th class="px-4 py-2 text-left">Fecha mínima</th>
                                         <th class="px-4 py-2 text-left">Fecha máxima</th>
                                     </tr>
@@ -263,6 +343,12 @@ const iconoDiferencia = (diferencia) => {
                                         </td>
 
                                         <td class="px-4 py-2">
+                                            <span :class="juego.roi >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex rounded-lg px-3 py-1 text-sm font-bold">
+                                                {{ juego.roi }}%
+                                            </span>
+                                        </td>
+
+                                        <td class="px-4 py-2">
                                             <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-bold whitespace-nowrap min-w-[110px] justify-center">
                                                 <i class="fa-regular fa-calendar"></i>
                                                 {{ formatearFecha(juego.fecha_minima) }}
@@ -278,7 +364,7 @@ const iconoDiferencia = (diferencia) => {
                                     </tr>
 
                                     <tr v-if="props.juegos.data.length === 0">
-                                        <td class="px-4 py-10 text-center" colspan="7">
+                                        <td class="px-4 py-10 text-center" colspan="8">
                                             <div class="flex flex-col items-center gap-3">
                                                 <div class="w-16 h-16 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
                                                     <i class="fa-solid fa-gamepad text-2xl"></i>

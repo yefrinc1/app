@@ -147,6 +147,13 @@ const menuSections = computed(() => [
                 permission: 'inventario.analisis.ver',
             },
             {
+                label: 'Rotación de inventario',
+                icon: '🔄',
+                route: 'inventario.rotacion.index',
+                active: 'inventario.rotacion.*',
+                permission: 'inventario.rotacion.ver',
+            },
+            {
                 label: 'Titulos de juegos',
                 icon: '🎮',
                 route: 'juegos.index',

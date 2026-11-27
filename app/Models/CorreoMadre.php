@@ -30,6 +30,11 @@ class CorreoMadre extends Model
         return $this->hasOne(CorreoJuego::class, 'id_correo_madre')->where('es_cuenta_madre', 1);
     }
 
+    public function codigosVerificacion()
+    {
+        return $this->hasMany(CodigoVerificacion::class, 'id_correo_madre');
+    }
+
     public function cantidadHijosReales(): int
     {
         return $this->correosJuegos()->hijosReales()->count();

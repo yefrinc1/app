@@ -8,6 +8,7 @@ use App\Models\CorreoJuego;
 use App\Models\CorreoMadre;
 use App\Models\Notificaciones;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -27,7 +28,15 @@ class CorreoJuegoController extends Controller
         $icon_mensaje = $request->get('icon_mensaje', '');
     
         // Filtra los correos si se proporciona un término de búsqueda
-        $correos = CorreoJuego::with(['correoMadre:id,correo,saldo_usd'])
+        $correos = CorreoJuego::with([
+            'correoMadre' => fn ($query) => $query
+                ->select('id', 'correo', 'saldo_usd')
+                ->withCount([
+                    'codigosVerificacion as codigos_disponibles_count' => fn ($codigos) => $codigos->where('disponible', 1),
+                ]),
+        ])->withCount([
+            'codigosVerificacion as codigos_disponibles_count' => fn ($query) => $query->where('disponible', 1),
+        ])
         ->when($search, function ($query, $search) {
             return $query->where('correo', 'like', "%{$search}%");
         })
@@ -270,22 +279,8 @@ class CorreoJuegoController extends Controller
             $icon_mensaje = 'success';
         }
 
-        if (trim($request->codigo) != '') {
-            $codigos = CodigoVerificacion::separarCodigos($request->codigo);
-            CodigoVerificacion::where('id_correo_juego', $correoJuego->id)->delete();
-
-            $codigoRespaldo = 1;
-            foreach ($codigos as $clave => $codigo) {
-                if ($clave > 0 && $codigoRespaldo == 1) {
-                    $codigoRespaldo = 0;
-                }
-                
-                CodigoVerificacion::create([
-                    'codigo' => $codigo,
-                    'id_correo_juego' => $correoJuego->id,
-                    'respaldo' => $codigoRespaldo,
-                ]);
-            }
+        if (trim((string) $request->codigo) !== '') {
+            $this->reemplazarCodigos($correoJuego, $request->codigo);
         }
 
         $cuentaNueva = $request->primaria_ps4 + $request->primaria_ps5 + $request->secundaria;
@@ -305,6 +300,29 @@ class CorreoJuegoController extends Controller
             'mensaje_correo_creado' => $mensaje,
             'icon_mensaje' => $icon_mensaje,
         ]);
+    }
+
+    private function reemplazarCodigos(CorreoJuego $correoJuego, string $texto): void
+    {
+        $codigos = CodigoVerificacion::separarCodigos($texto);
+        $esMadreJugable = $correoJuego->es_cuenta_madre && $correoJuego->id_correo_madre;
+
+        DB::transaction(function () use ($correoJuego, $codigos, $esMadreJugable) {
+            CodigoVerificacion::where('id_correo_juego', $correoJuego->id)->delete();
+
+            if ($esMadreJugable) {
+                CodigoVerificacion::where('id_correo_madre', $correoJuego->id_correo_madre)->delete();
+            }
+
+            foreach ($codigos as $indice => $codigo) {
+                CodigoVerificacion::create([
+                    'codigo' => $codigo,
+                    'id_correo_juego' => $esMadreJugable ? null : $correoJuego->id,
+                    'id_correo_madre' => $esMadreJugable ? $correoJuego->id_correo_madre : null,
+                    'respaldo' => $indice === 0 ? 1 : 0,
+                ]);
+            }
+        });
     }
 
     public function destroy(string $id)
@@ -341,19 +359,74 @@ class CorreoJuegoController extends Controller
 
     public function consultarInventario(Request $request)
     {
-        $search = $request->get('search', '');
+        $filtros = array_merge([
+            'search' => '',
+            'disponibilidad' => '',
+            'orden' => 'recientes',
+        ], $request->validate([
+            'search' => ['nullable', 'string', 'max:150'],
+            'disponibilidad' => ['nullable', 'in:con_cupos,sin_cupos,ps4,ps5,secundaria'],
+            'orden' => ['nullable', 'in:recientes,antiguos,juego,costo'],
+        ]));
+        $filtros['search'] = trim((string) $filtros['search']);
 
-        $correos = CorreoJuego::when($search, function ($query, $search) {
-            return $query->where('juego', 'like', "%{$search}%");
-        })        
-        ->where('disponible', 1)
-        ->latest()
-        ->paginate(10)
-        ->appends($request->query());
+        $base = CorreoJuego::query()
+            ->where('disponible', 1)
+            ->where('es_cuenta_madre', 0)
+            ->when($filtros['search'] !== '', fn ($query) => $query->where('juego', 'like', "%{$filtros['search']}%"))
+            ->when($filtros['disponibilidad'] === 'con_cupos', fn ($query) => $query->where(function ($subquery) {
+                $subquery->where('primaria_ps4', '<', 2)->orWhere('primaria_ps5', '<', 2)->orWhere('secundaria', 0);
+            }))
+            ->when($filtros['disponibilidad'] === 'sin_cupos', fn ($query) => $query
+                ->where('primaria_ps4', '>=', 2)->where('primaria_ps5', '>=', 2)->where('secundaria', '>', 0))
+            ->when($filtros['disponibilidad'] === 'ps4', fn ($query) => $query->where('primaria_ps4', '<', 2))
+            ->when($filtros['disponibilidad'] === 'ps5', fn ($query) => $query->where('primaria_ps5', '<', 2))
+            ->when($filtros['disponibilidad'] === 'secundaria', fn ($query) => $query->where('secundaria', 0));
+
+        $resumen = (clone $base)->selectRaw("COUNT(*) cuentas, COUNT(DISTINCT juego) juegos,
+            SUM(GREATEST(0, 2 - primaria_ps4)) cupos_primaria_ps4,
+            SUM(GREATEST(0, 2 - primaria_ps5)) cupos_primaria_ps5,
+            SUM(CASE WHEN secundaria = 0 THEN 1 ELSE 0 END) cupos_secundaria,
+            SUM(COALESCE(precio_cop, 0)) valor_inventario")->first();
+
+        $puedeVerDatos = $request->user()->can('inventario.datos.completos');
+        $columnas = ['id', 'juego', 'primaria_ps4', 'primaria_ps5', 'secundaria', 'precio_cop', 'created_at'];
+        if ($puedeVerDatos) {
+            array_push($columnas, 'correo', 'contrasena');
+        }
+
+        $query = (clone $base)->select($columnas);
+        match ($filtros['orden']) {
+            'antiguos' => $query->orderBy('created_at'),
+            'juego' => $query->orderBy('juego'),
+            'costo' => $query->orderByDesc('precio_cop'),
+            default => $query->latest(),
+        };
+
+        $correos = $query->paginate(15)->appends($request->query());
+        $imagenes = DB::table('juegos')->whereNotNull('url_imagen')->get(['nombre', 'url_imagen'])
+            ->keyBy(fn ($juego) => mb_strtolower(trim($juego->nombre)));
+        $correos->getCollection()->transform(function (CorreoJuego $correo) use ($imagenes) {
+            $correo->setAttribute('cupos_primaria_ps4', max(0, 2 - (int) $correo->primaria_ps4));
+            $correo->setAttribute('cupos_primaria_ps5', max(0, 2 - (int) $correo->primaria_ps5));
+            $correo->setAttribute('cupo_secundaria', (int) $correo->secundaria === 0 ? 1 : 0);
+            $correo->setAttribute('imagen', $imagenes->get(mb_strtolower(trim((string) $correo->juego)))?->url_imagen);
+
+            return $correo;
+        });
 
         return Inertia::render('CorreoJuego/Inventario', [
             'correos' => $correos,
-            'search' => $search,
+            'filtros' => $filtros,
+            'resumen' => [
+                'cuentas' => (int) ($resumen->cuentas ?? 0),
+                'juegos' => (int) ($resumen->juegos ?? 0),
+                'cupos_primaria_ps4' => (int) ($resumen->cupos_primaria_ps4 ?? 0),
+                'cupos_primaria_ps5' => (int) ($resumen->cupos_primaria_ps5 ?? 0),
+                'cupos_secundaria' => (int) ($resumen->cupos_secundaria ?? 0),
+                'valor_inventario' => (int) ($resumen->valor_inventario ?? 0),
+            ],
+            'puede_ver_datos_completos' => $puedeVerDatos,
         ]);
     }
 }

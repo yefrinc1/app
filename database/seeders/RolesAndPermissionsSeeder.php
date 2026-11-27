@@ -44,6 +44,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Inventario
             'inventario.consultar',
             'inventario.analisis.ver',
+            'inventario.rotacion.ver',
             'inventario.datos.completos',
             'inventario.titulos',
 
