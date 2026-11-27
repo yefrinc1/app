@@ -197,28 +197,40 @@ const detalleChart = computed(() => ({
 
                 <SectionCard v-if="tab === 'analisis'" title="Ranking de demanda e inventario" description="Resultados ordenables según ventas, disponibilidad y necesidad de compra." icon="fa-solid fa-ranking-star text-red-500">
                     <div class="overflow-x-auto">
-                        <table class="min-w-[1500px] w-full border border-gray-200 text-sm">
+                        <table class="min-w-[1350px] w-full border border-gray-200 text-sm">
                             <thead class="bg-gray-100 text-left text-xs uppercase tracking-wide text-gray-600"><tr class="border-b">
                                 <th class="px-4 py-3">Videojuego</th>
                                 <th v-for="columna in [['ventas_totales','Ventas'],['cupos_ps4','Cupos PS4'],['cupos_ps5','Cupos PS5'],['demanda_estimada','Demanda'],['cuentas_recomendadas','Comprar']]" :key="columna[0]" class="cursor-pointer px-3 py-3" @click="ordenar(columna[0])">{{ columna[1] }} {{ iconoOrden(columna[0]) }}</th>
-                                <th class="px-3 py-3">Licencias</th><th class="px-3 py-3">Prom./día</th><th class="px-3 py-3">Cobertura</th><th class="px-3 py-3">Tendencia</th><th class="px-3 py-3">Estado</th><th class="px-3 py-3"></th>
+                                <th class="px-3 py-3">Prom./día</th><th class="px-3 py-3">Cobertura</th><th class="px-3 py-3">Tendencia</th><th class="px-3 py-3">Estado</th><th class="px-3 py-3"></th>
                             </tr></thead>
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-for="fila in resultados.data" :key="fila.juego" class="hover:bg-gray-50">
                                     <td class="px-4 py-3"><div class="flex min-w-[230px] items-center gap-3"><img v-if="fila.imagen" :src="fila.imagen" class="h-11 w-11 rounded-lg object-cover" /><div v-else class="flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-600"><i class="fa-solid fa-gamepad"></i></div><div><p class="font-semibold text-gray-900">{{ fila.juego }}</p><p class="text-xs text-gray-500">{{ fila.cuentas }} cuentas activas</p></div></div></td>
-                                    <td class="px-3 py-3 font-bold text-gray-900">{{ fila.ventas_totales }}<div class="text-xs font-normal text-gray-500">PS4 {{ fila.ventas_ps4 }} · PS5 {{ fila.ventas_ps5 }}</div></td>
+                                    <td class="px-3 py-3 font-bold text-gray-900">
+                                        {{ fila.ventas_totales }} ventas
+                                        <div class="text-xs font-normal text-gray-500">PS4 {{ fila.ventas_ps4 }} · PS5 {{ fila.ventas_ps5 }}</div>
+                                        <div class="text-xs font-normal text-gray-400">
+                                            <template v-if="fila.ventas_primaria && fila.ventas_secundaria">Primaria {{ fila.ventas_primaria }} · Secundaria {{ fila.ventas_secundaria }}</template>
+                                            <template v-else-if="fila.ventas_primaria">100% Primaria</template>
+                                            <template v-else-if="fila.ventas_secundaria">100% Secundaria</template>
+                                        </div>
+                                    </td>
                                     <td class="px-3 py-3"><b>{{ fila.cupos_ps4 }}</b><div class="text-xs text-gray-400">P {{ fila.cupos_primarios_ps4 }} · S {{ fila.cupos_secundarios_ps4 }}</div></td>
                                     <td class="px-3 py-3"><b>{{ fila.cupos_ps5 }}</b><div class="text-xs text-gray-400">P {{ fila.cupos_primarios_ps5 }} · S {{ fila.cupos_secundarios_ps5 }}</div></td>
                                     <td class="px-3 py-3 font-semibold">{{ fila.demanda_estimada }}<div class="text-xs font-normal text-gray-400">PS4 {{ fila.ps4.objetivo }} · PS5 {{ fila.ps5.objetivo }}</div></td>
-                                    <td class="px-3 py-3"><span :class="fila.cuentas_recomendadas ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'" class="rounded-lg px-2.5 py-1 font-bold">{{ fila.cuentas_recomendadas }}</span><div class="mt-1 text-xs text-gray-400">Faltan 4: {{ fila.ps4.faltantes }} · 5: {{ fila.ps5.faltantes }}</div><div class="text-xs text-gray-400">Después 4: {{ fila.cupos_post_compra_ps4 }} · 5: {{ fila.cupos_post_compra_ps5 }}</div></td>
-                                    <td class="px-3 py-3"><span class="text-xs">Prim. {{ fila.ventas_primaria }}</span><br><span class="text-xs">Sec. {{ fila.ventas_secundaria }}</span></td>
+                                    <td class="px-3 py-3">
+                                        <span :class="fila.cuentas_recomendadas ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'" class="rounded-lg px-2.5 py-1 font-bold">{{ fila.cuentas_recomendadas }} cuentas</span>
+                                        <div class="mt-2 text-xs font-semibold text-gray-600">Comprar: PS4 {{ fila.cuentas_recomendadas_ps4 }} · PS5 {{ fila.cuentas_recomendadas_ps5 }}</div>
+                                        <div class="mt-1 text-xs text-gray-400">Faltan: PS4 {{ fila.ps4.faltantes }} · PS5 {{ fila.ps5.faltantes }}</div>
+                                        <div class="text-xs text-gray-400">Después: PS4 {{ fila.cupos_post_compra_ps4 }} · PS5 {{ fila.cupos_post_compra_ps5 }}</div>
+                                    </td>
                                     <td class="px-3 py-3 font-semibold">{{ fila.promedio_diario }}</td>
                                     <td class="px-3 py-3 text-xs"><p>PS4: {{ cobertura(fila.ps4.cobertura) }}</p><p>PS5: {{ cobertura(fila.ps5.cobertura) }}</p></td>
                                     <td class="px-3 py-3"><span :class="fila.tendencia === 'creciente' ? 'text-green-600' : fila.tendencia === 'decreciente' ? 'text-red-600' : 'text-gray-500'" class="font-bold"><i :class="fila.tendencia === 'creciente' ? 'fa-arrow-trend-up' : fila.tendencia === 'decreciente' ? 'fa-arrow-trend-down' : 'fa-minus'" class="fa-solid mr-1"></i>{{ fila.variacion }}%</span><div class="text-xs text-gray-400">7d {{ fila.ventas_7 }} · 30d {{ fila.ventas_30 }}</div></td>
                                     <td class="px-3 py-3"><span :class="estadoInfo(fila.estado).clase" class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset">{{ estadoInfo(fila.estado).texto }}</span></td>
                                     <td class="px-3 py-3"><PrimaryButton type="button" class="whitespace-nowrap" @click="abrirDetalle(fila)"><i class="fa-solid fa-eye mr-2"></i>Detalle</PrimaryButton></td>
                                 </tr>
-                                <tr v-if="resultados.data.length === 0"><td colspan="12" class="px-6 py-16 text-center text-gray-500"><i class="fa-solid fa-chart-column mb-3 block text-4xl text-gray-300"></i>No hay ventas que coincidan con los filtros.</td></tr>
+                                <tr v-if="resultados.data.length === 0"><td colspan="11" class="px-6 py-16 text-center text-gray-500"><i class="fa-solid fa-chart-column mb-3 block text-4xl text-gray-300"></i>No hay ventas que coincidan con los filtros.</td></tr>
                             </tbody>
                         </table>
                     </div>
