@@ -34,6 +34,7 @@ const filtrosForm = reactive({
     hasta: props.filtros.hasta ?? '',
     tipo: props.filtros.tipo ?? '',
     buscar: props.filtros.buscar ?? '',
+    incluir_ventas: props.filtros.incluir_ventas ? '1' : '0',
 });
 const modalAbierto = ref(false);
 const editando = ref(false);
@@ -50,7 +51,11 @@ const consultar = (inmediato = false) => {
     }), inmediato ? 0 : 350);
 };
 const limpiar = () => {
-    Object.assign(filtrosForm, { periodo: '30', desde: '', hasta: '', tipo: '', buscar: '' });
+    Object.assign(filtrosForm, { periodo: '30', desde: '', hasta: '', tipo: '', buscar: '', incluir_ventas: '0' });
+    consultar(true);
+};
+const cambiarVentas = (incluir) => {
+    filtrosForm.incluir_ventas = incluir ? '1' : '0';
     consultar(true);
 };
 const abrirCrear = () => {
@@ -158,6 +163,22 @@ const opcionesDona = { responsive: true, maintainAspectRatio: false, plugins: { 
 
         <template #contenido-pagina>
             <div class="space-y-6">
+                <section class="rounded-2xl border border-red-100 bg-gradient-to-r from-white via-red-50 to-amber-50 p-4 shadow-sm sm:p-5">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm font-black text-gray-900"><i class="fa-solid fa-chart-line mr-2 text-red-600"></i>Incluir ingresos de ventas</p>
+                            <p class="mt-1 text-xs text-gray-600">Define si los indicadores y gráficas deben sumar las ventas activas del período seleccionado.</p>
+                        </div>
+                        <div class="grid grid-cols-2 rounded-xl border border-red-200 bg-white p-1 shadow-sm">
+                            <button type="button" class="rounded-lg px-4 py-2.5 text-sm font-black transition" :class="filtrosForm.incluir_ventas === '0' ? 'bg-gray-900 text-white shadow' : 'text-gray-600 hover:bg-gray-100'" @click="cambiarVentas(false)"><i class="fa-solid fa-minus mr-2"></i>Sin ventas</button>
+                            <button type="button" class="rounded-lg px-4 py-2.5 text-sm font-black transition" :class="filtrosForm.incluir_ventas === '1' ? 'bg-red-600 text-white shadow' : 'text-gray-600 hover:bg-red-50'" @click="cambiarVentas(true)"><i class="fa-solid fa-plus mr-2"></i>Con ventas</button>
+                        </div>
+                    </div>
+                    <div v-if="filtrosForm.incluir_ventas === '1'" class="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+                        <i class="fa-solid fa-circle-check text-green-600"></i><b>{{ resumen.cantidad_ventas }} ventas activas incluidas:</b><span>{{ moneda(resumen.ventas) }}</span>
+                    </div>
+                </section>
+
                 <SectionCard title="Filtros financieros" description="Analiza un período o encuentra un movimiento específico." icon="fa-solid fa-filter text-red-500">
                     <template #actions><PrimaryButton type="button" class="w-full justify-center sm:w-auto" @click="abrirCrear"><i class="fa-solid fa-plus mr-2"></i>Nuevo movimiento</PrimaryButton></template>
                     <form class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" @submit.prevent="consultar(true)">
@@ -173,14 +194,14 @@ const opcionesDona = { responsive: true, maintainAspectRatio: false, plugins: { 
                 </SectionCard>
 
                 <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <article class="rounded-xl border border-green-100 bg-green-50 p-5"><p class="text-sm font-semibold text-green-700">Ingresos</p><p class="mt-1 text-2xl font-black text-green-900">{{ moneda(resumen.ingresos) }}</p><p v-if="comparacion.disponible" class="mt-1 text-xs font-bold" :class="claseVariacion(comparacion.ingresos)">{{ textoVariacion(comparacion.ingresos) }} vs. período anterior</p></article>
+                    <article class="rounded-xl border border-green-100 bg-green-50 p-5"><p class="text-sm font-semibold text-green-700">Ingresos</p><p class="mt-1 text-2xl font-black text-green-900">{{ moneda(resumen.ingresos) }}</p><p v-if="filtrosForm.incluir_ventas === '1'" class="mt-1 text-xs text-green-700">Movimientos {{ moneda(resumen.ingresos_manuales) }} + ventas {{ moneda(resumen.ventas) }}</p><p v-if="comparacion.disponible" class="mt-1 text-xs font-bold" :class="claseVariacion(comparacion.ingresos)">{{ textoVariacion(comparacion.ingresos) }} vs. período anterior</p></article>
                     <article class="rounded-xl border border-red-100 bg-red-50 p-5"><p class="text-sm font-semibold text-red-700">Egresos</p><p class="mt-1 text-2xl font-black text-red-900">{{ moneda(resumen.egresos) }}</p><p v-if="comparacion.disponible" class="mt-1 text-xs font-bold" :class="claseVariacion(comparacion.egresos, true)">{{ textoVariacion(comparacion.egresos) }} vs. período anterior</p></article>
                     <article class="rounded-xl border border-amber-100 bg-amber-50 p-5"><p class="text-sm font-semibold text-amber-700">Retiros</p><p class="mt-1 text-2xl font-black text-amber-900">{{ moneda(resumen.retiros) }}</p><p class="mt-1 text-xs text-amber-600">Utilidades retiradas</p></article>
                     <article class="rounded-xl border border-blue-100 bg-blue-50 p-5"><p class="text-sm font-semibold text-blue-700">Balance operativo</p><p class="mt-1 text-2xl font-black" :class="resumen.balance_operativo >= 0 ? 'text-blue-900' : 'text-red-700'">{{ moneda(resumen.balance_operativo) }}</p><p v-if="comparacion.disponible" class="mt-1 text-xs font-bold" :class="claseVariacion(comparacion.balance)">{{ textoVariacion(comparacion.balance) }} vs. período anterior</p></article>
                     <article class="rounded-xl border p-5" :class="resumen.saldo_neto >= 0 ? 'border-purple-100 bg-purple-50' : 'border-red-100 bg-red-50'"><p class="text-sm font-semibold" :class="resumen.saldo_neto >= 0 ? 'text-purple-700' : 'text-red-700'">Saldo después de retiros</p><p class="mt-1 text-2xl font-black" :class="resumen.saldo_neto >= 0 ? 'text-purple-900' : 'text-red-900'">{{ moneda(resumen.saldo_neto) }}</p><p class="mt-1 text-xs opacity-70">{{ resumen.movimientos }} movimientos</p></article>
                 </section>
 
-                <section class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><i class="fa-solid fa-circle-info mr-2"></i><b>Balance operativo</b> = ingresos − egresos. <b>Saldo después de retiros</b> también descuenta los retiros de utilidades.</section>
+                <section class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900"><i class="fa-solid fa-circle-info mr-2"></i><b>Balance operativo</b> = ingresos − egresos. <span v-if="filtrosForm.incluir_ventas === '1'">Los ingresos incluyen las ventas activas realizadas en el período.</span> <b>Saldo después de retiros</b> también descuenta los retiros de utilidades.</section>
 
                 <section class="grid gap-5 xl:grid-cols-2">
                     <SectionCard title="Evolución del flujo" description="Comportamiento de ingresos, egresos y retiros durante el período." icon="fa-solid fa-chart-line text-red-500" class="xl:col-span-2"><div class="h-80"><Line :data="evolucionData" :options="opcionesDinero" /></div></SectionCard>

@@ -6,6 +6,7 @@ use App\Models\CodigoVerificacion;
 use App\Models\CorreoGlobales;
 use App\Models\CorreoJuego;
 use App\Models\CorreoMadre;
+use App\Models\Juego;
 use App\Models\Notificaciones;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -98,16 +99,21 @@ class CorreoJuegoController extends Controller
             'contrasena' => 'required',
             'juego' => 'required',
             'fecha_nacimiento' => 'required',
-            'primaria_ps4' => 'required',
-            'primaria_ps5' => 'required',
-            'secundaria' => 'required',
+            'primaria_ps4' => 'required|integer|min:0|max:2',
+            'primaria_ps5' => 'required|integer|min:0|max:2',
+            'secundaria' => 'required|integer|min:0|max:1',
         ]);
+        [$primariaPs4, $primariaPs5] = $this->licenciasSegunConsola(
+            $validatedData['juego'],
+            (int) $validatedData['primaria_ps4'],
+            (int) $validatedData['primaria_ps5'],
+        );
 
         $correoGlobal = CorreoGlobales::create([
             'correo' => $validatedData['correo'],
         ]);
 
-        $correoJuegoDisponible = $validatedData['primaria_ps4'] + $validatedData['primaria_ps5'] + $validatedData['secundaria'] >= 5;
+        $correoJuegoDisponible = $primariaPs4 + $primariaPs5 + $validatedData['secundaria'] >= 5;
 
         $correoJuego = CorreoJuego::create([
             'correo' => $correoGlobal->correo,
@@ -115,8 +121,8 @@ class CorreoJuegoController extends Controller
             'id_correo_globales' => $correoGlobal->id,
             'fecha_nacimiento' => $validatedData['fecha_nacimiento'],
             'juego' => $validatedData['juego'],
-            'primaria_ps4' => $validatedData['primaria_ps4'],
-            'primaria_ps5' => $validatedData['primaria_ps5'],
+            'primaria_ps4' => $primariaPs4,
+            'primaria_ps5' => $primariaPs5,
             'secundaria' => $validatedData['secundaria'],
             'disponible' => $correoJuegoDisponible ? 0 : 1,
         ]);
@@ -150,7 +156,16 @@ class CorreoJuegoController extends Controller
             'id_correo_globales' => 'required|exists:correo_globales,id',
             'id_correo_madre' => 'required|exists:correo_madre,id',
             'fecha_nacimiento' => 'required',
+            'juego' => 'required|string',
+            'primaria_ps4' => 'required|integer|min:0|max:2',
+            'primaria_ps5' => 'required|integer|min:0|max:2',
+            'secundaria' => 'required|integer|min:0|max:1',
         ]);
+        [$primariaPs4, $primariaPs5] = $this->licenciasSegunConsola(
+            $validatedData['juego'],
+            (int) $validatedData['primaria_ps4'],
+            (int) $validatedData['primaria_ps5'],
+        );
 
         $correoGlobal = CorreoGlobales::findOrFail($validatedData['id_correo_globales']);
         $correoMadre = CorreoMadre::findOrFail($validatedData['id_correo_madre']);
@@ -179,6 +194,9 @@ class CorreoJuegoController extends Controller
             'juego' => $request->juego,
             'precio_usd' => $request->precio_usd,
             'precio_cop' => $precioCOP,
+            'primaria_ps4' => $primariaPs4,
+            'primaria_ps5' => $primariaPs5,
+            'secundaria' => $validatedData['secundaria'],
         ]);
 
         $notificacionExiste = Notificaciones::where('juego', $request->juego)
@@ -216,13 +234,19 @@ class CorreoJuegoController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'contrasena' => 'required|string|min:6',
             'fecha_nacimiento' => 'required',
-            'primaria_ps4' => 'required',
-            'primaria_ps5' => 'required',
-            'secundaria' => 'required',
+            'juego' => 'required|string',
+            'primaria_ps4' => 'required|integer|min:0|max:2',
+            'primaria_ps5' => 'required|integer|min:0|max:2',
+            'secundaria' => 'required|integer|min:0|max:1',
         ]);
+        [$primariaPs4, $primariaPs5] = $this->licenciasSegunConsola(
+            $validatedData['juego'],
+            (int) $validatedData['primaria_ps4'],
+            (int) $validatedData['primaria_ps5'],
+        );
 
         $correoJuego = CorreoJuego::findOrFail($id);
         $correoMadre = CorreoMadre::find($correoJuego->id_correo_madre);
@@ -250,9 +274,9 @@ class CorreoJuegoController extends Controller
                 'precio_usd' => $request->precio_usd,
                 'precio_cop' => $precioCOP,
                 'disponible' => $request->disponible ? 1 : 0,
-                'primaria_ps4' => $request->primaria_ps4,
-                'primaria_ps5' => $request->primaria_ps5,
-                'secundaria' => $request->secundaria,
+                'primaria_ps4' => $primariaPs4,
+                'primaria_ps5' => $primariaPs5,
+                'secundaria' => $validatedData['secundaria'],
             ]);
 
             if ($correoJuego->es_cuenta_madre) {
@@ -270,9 +294,9 @@ class CorreoJuegoController extends Controller
                 'fecha_nacimiento' => $request->fecha_nacimiento,
                 'juego' => $request->juego,
                 'disponible' => $request->disponible ? 1 : 0,
-                'primaria_ps4' => $request->primaria_ps4,
-                'primaria_ps5' => $request->primaria_ps5,
-                'secundaria' => $request->secundaria,
+                'primaria_ps4' => $primariaPs4,
+                'primaria_ps5' => $primariaPs5,
+                'secundaria' => $validatedData['secundaria'],
             ]);
 
             $mensaje = "Se actualizo correctamente el juego";
@@ -283,7 +307,7 @@ class CorreoJuegoController extends Controller
             $this->reemplazarCodigos($correoJuego, $request->codigo);
         }
 
-        $cuentaNueva = $request->primaria_ps4 + $request->primaria_ps5 + $request->secundaria;
+        $cuentaNueva = $primariaPs4 + $primariaPs5 + $validatedData['secundaria'];
         if ($icon_mensaje == 'success' && $cuentaNueva == 0) {
             $notificacionExiste = Notificaciones::where('juego', $request->juego)
                 ->where('tipo', 'crear_juego')
@@ -323,6 +347,23 @@ class CorreoJuegoController extends Controller
                 ]);
             }
         });
+    }
+
+    private function licenciasSegunConsola(string $nombreJuego, int $primariaPs4, int $primariaPs5): array
+    {
+        $consola = strtoupper((string) Juego::query()
+            ->where('nombre', trim($nombreJuego))
+            ->value('consola'));
+        $admitePs4 = str_contains($consola, 'PS4');
+        $admitePs5 = str_contains($consola, 'PS5');
+
+        if ($admitePs5 && ! $admitePs4) {
+            $primariaPs4 = 2;
+        } elseif ($admitePs4 && ! $admitePs5) {
+            $primariaPs5 = 2;
+        }
+
+        return [$primariaPs4, $primariaPs5];
     }
 
     public function destroy(string $id)

@@ -94,18 +94,20 @@ class JuegoController extends Controller
 
         $juegos = Juego::where('nombre', 'like', "%{$query}%")
             ->where('activo', true)
-            ->select('id', 'nombre', 'url_imagen')
+            ->select('id', 'nombre', 'url_imagen', 'consola')
             ->orderBy('nombre')
             ->limit(7)
             ->get();
 
         $exactMatch = Juego::whereRaw('LOWER(nombre) = ?', [strtolower($query)])
             ->where('activo', true)
-            ->exists();
+            ->select('id', 'nombre', 'url_imagen', 'consola')
+            ->first();
 
         return response()->json([
             'juegos' => $juegos,
-            'exact_match' => $exactMatch,
+            'exact_match' => (bool) $exactMatch,
+            'exact_game' => $exactMatch,
         ]);
     }
 }

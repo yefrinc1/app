@@ -25,7 +25,7 @@ const buscando = ref(false);
 const clienteSeleccionado = ref(null);
 const editandoCliente = ref(false);
 let temporizador;
-const detalleVacio = () => ({ juego: '', tipo_cuenta: '', consola: '', cantidad: 1, precio_unitario: '', descuento: 0, observaciones: '' });
+const detalleVacio = () => ({ juego: '', tipo_cuenta: '', consola: '', cantidad: 1, precio_unitario: '', descuento: 0, observaciones: '', consolas: { ps4: true, ps5: true } });
 const fechaHoraLocal = () => { const fecha = new Date(); fecha.setMinutes(fecha.getMinutes() - fecha.getTimezoneOffset()); return fecha.toISOString().slice(0, 16); };
 const pagoVacio = () => ({ metodo_pago: '', valor_bruto: '', fecha_pago: fechaHoraLocal(), referencia: '', comprobante: null, observaciones: '' });
 const form = useForm({
@@ -91,6 +91,16 @@ const ingresarEntero = (evento, objeto, campo) => {
 };
 const agregarDetalle = () => form.detalles.push(detalleVacio());
 const quitarDetalle = (indice) => form.detalles.length > 1 && form.detalles.splice(indice, 1);
+const aplicarConsolas = (juego, detalle) => {
+    const consola = String(juego?.consola || '').toUpperCase();
+    const ps4 = consola.includes('PS4');
+    const ps5 = consola.includes('PS5');
+    detalle.consolas = ps4 || ps5 ? { ps4, ps5 } : { ps4: true, ps5: true };
+
+    if (ps4 && !ps5) detalle.consola = 'PS4';
+    else if (ps5 && !ps4) detalle.consola = 'PS5';
+    else if (!detalle.consolas[detalle.consola?.toLowerCase()]) detalle.consola = '';
+};
 const agregarPago = () => form.pagos.push(pagoVacio());
 const quitarPago = (indice) => form.pagos.splice(indice, 1);
 const cargarArchivo = (evento, indice) => { form.pagos[indice].comprobante = evento.target.files[0] ?? null; };
@@ -179,9 +189,12 @@ const guardar = async () => {
                         <article v-for="(detalle, indice) in form.detalles" :key="indice" class="rounded-xl border border-gray-100 bg-gray-50 p-4">
                             <div class="mb-4 flex items-center justify-between"><h3 class="font-bold text-gray-900"><span class="mr-2 rounded-full bg-gray-200 px-2 py-1 text-xs">#{{ indice + 1 }}</span>{{ detalle.juego || 'Nuevo juego' }}</h3><DangerButton v-if="form.detalles.length > 1" type="button" class="h-8 w-8 justify-center" title="Quitar juego" @click="quitarDetalle(indice)"><i class="fa-solid fa-trash"></i></DangerButton></div>
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-                                <div class="xl:col-span-2"><InputLabel :for="`juego-${indice}`" value="Juego" /><JuegoCatalogoInput v-model="detalle.juego" :input-id="`juego-${indice}`" :error="form.errors[`detalles.${indice}.juego`]" /></div>
+                                <div class="xl:col-span-2"><InputLabel :for="`juego-${indice}`" value="Juego" /><JuegoCatalogoInput v-model="detalle.juego" :input-id="`juego-${indice}`" :error="form.errors[`detalles.${indice}.juego`]" @juego-seleccionado="aplicarConsolas($event, detalle)" /></div>
                                 <FormSelect :id="`cuenta-${indice}`" v-model="detalle.tipo_cuenta" label="Tipo de cuenta" :error="form.errors[`detalles.${indice}.tipo_cuenta`]" icon="fa-solid fa-key" required><option value="">Seleccionar</option><option value="Primaria">👑 Cuenta Primaria</option><option value="Secundaria">🎮 Cuenta Secundaria</option></FormSelect>
-                                <FormSelect :id="`consola-${indice}`" v-model="detalle.consola" label="Consola" :error="form.errors[`detalles.${indice}.consola`]" icon="fa-brands fa-playstation" required><option value="">Seleccionar</option><option value="PS4">PlayStation 4</option><option value="PS5">PlayStation 5</option></FormSelect>
+                                <div>
+                                    <FormSelect :id="`consola-${indice}`" v-model="detalle.consola" label="Consola" :error="form.errors[`detalles.${indice}.consola`]" icon="fa-brands fa-playstation" :disabled="detalle.consolas.ps4 !== detalle.consolas.ps5" required><option value="">Seleccionar</option><option v-if="detalle.consolas.ps4" value="PS4">PlayStation 4</option><option v-if="detalle.consolas.ps5" value="PS5">PlayStation 5</option></FormSelect>
+                                    <p v-if="detalle.consolas.ps4 !== detalle.consolas.ps5" class="mt-2 text-xs font-bold text-purple-700"><i class="fa-solid fa-lock mr-1"></i>Este juego es exclusivo de {{ detalle.consola }}.</p>
+                                </div>
                                 <div><InputLabel :for="`cantidad-${indice}`" value="Cantidad" /><TextInput :id="`cantidad-${indice}`" v-model="detalle.cantidad" type="number" min="1" max="20" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors[`detalles.${indice}.cantidad`]" /></div>
                                 <div><InputLabel :for="`precio-${indice}`" value="Precio unitario" /><TextInput :id="`precio-${indice}`" :model-value="detalle.precio_unitario" @input="ingresarEntero($event, detalle, 'precio_unitario')" type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /><InputError class="mt-2" :message="form.errors[`detalles.${indice}.precio_unitario`]" /></div>
                                 <div><InputLabel :for="`descuento-${indice}`" value="Descuento" /><TextInput :id="`descuento-${indice}`" :model-value="detalle.descuento" @input="ingresarEntero($event, detalle, 'descuento')" type="text" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full" /></div>

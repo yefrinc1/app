@@ -8,6 +8,7 @@ import { useForm, Head } from '@inertiajs/vue3';
 import LayoutPageHeader from '@/Layouts/LayoutPageHeader.vue';
 import JuegoCatalogoInput from '@/Components/JuegoCatalogoInput.vue';
 import Swal from 'sweetalert2';
+import { ref } from 'vue';
 
 const props = defineProps({
     correosMadres: Array,
@@ -24,6 +25,15 @@ const form = useForm({
     primaria_ps5: 0,
     secundaria: 0,
 });
+const consolasJuego = ref({ ps4: true, ps5: true });
+const aplicarConsolas = (juego) => {
+    const consola = String(juego?.consola || '').toUpperCase();
+    const ps4 = consola.includes('PS4');
+    const ps5 = consola.includes('PS5');
+    consolasJuego.value = ps4 || ps5 ? { ps4, ps5 } : { ps4: true, ps5: true };
+    if (ps5 && !ps4) form.primaria_ps4 = 2;
+    if (ps4 && !ps5) form.primaria_ps5 = 2;
+};
 
 const swalWithTailwind = Swal.mixin({
     buttonsStyling: true
@@ -165,6 +175,7 @@ const submitForm = () => {
                                             v-model="form.juego"
                                             input-id="juego_manual"
                                             :error="form.errors.juego"
+                                            @juego-seleccionado="aplicarConsolas"
                                         />
                                     </div>
                                 </div>
@@ -178,13 +189,15 @@ const submitForm = () => {
                                 </h3>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
+                                    <div v-if="consolasJuego.ps4">
                                         <InputLabel for="primaria_ps4" value="Primaria PS4" />
 
                                         <TextInput
                                             id="primaria_ps4"
                                             v-model="form.primaria_ps4"
                                             type="number"
+                                            min="0"
+                                            max="2"
                                             class="mt-1 w-full"
                                             required
                                         />
@@ -192,13 +205,15 @@ const submitForm = () => {
                                         <InputError class="mt-2" :message="form.errors.primaria_ps4" />
                                     </div>
 
-                                    <div>
+                                    <div v-if="consolasJuego.ps5">
                                         <InputLabel for="primaria_ps5" value="Primaria PS5" />
 
                                         <TextInput
                                             id="primaria_ps5"
                                             v-model="form.primaria_ps5"
                                             type="number"
+                                            min="0"
+                                            max="2"
                                             class="mt-1 w-full"
                                             required
                                         />
@@ -213,6 +228,8 @@ const submitForm = () => {
                                             id="secundaria"
                                             v-model="form.secundaria"
                                             type="number"
+                                            min="0"
+                                            max="1"
                                             class="mt-1 w-full"
                                             required
                                         />
@@ -222,12 +239,12 @@ const submitForm = () => {
                                 </div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-                                    <div class="bg-blue-100 text-blue-800 rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between">
+                                    <div v-if="consolasJuego.ps4" class="bg-blue-100 text-blue-800 rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between">
                                         <span>PS4</span>
                                         <span>{{ form.primaria_ps4 }}</span>
                                     </div>
 
-                                    <div class="bg-indigo-100 text-indigo-800 rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between">
+                                    <div v-if="consolasJuego.ps5" class="bg-indigo-100 text-indigo-800 rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between">
                                         <span>PS5</span>
                                         <span>{{ form.primaria_ps5 }}</span>
                                     </div>

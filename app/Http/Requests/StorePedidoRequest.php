@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Juego;
 use App\Models\PedidoPago;
 use App\Services\ComprobantePagoService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -82,6 +83,24 @@ class StorePedidoRequest extends FormRequest
                     $validator->errors()->add(
                         'cliente_nuevo.nombre',
                         'Ingresa al menos nombre, teléfono, usuario o correo del nuevo cliente.'
+                    );
+                }
+            }
+
+            $detalles = collect($this->input('detalles', []));
+            $consolasCatalogo = Juego::query()
+                ->whereIn('nombre', $detalles->pluck('juego')->filter()->unique())
+                ->pluck('consola', 'nombre');
+
+            foreach ($detalles as $indice => $detalle) {
+                $nombre = $detalle['juego'] ?? '';
+                $consolaElegida = strtoupper((string) ($detalle['consola'] ?? ''));
+                $consolas = strtoupper((string) $consolasCatalogo->get($nombre, ''));
+
+                if ($consolas !== '' && $consolaElegida !== '' && ! str_contains($consolas, $consolaElegida)) {
+                    $validator->errors()->add(
+                        "detalles.{$indice}.consola",
+                        "El juego seleccionado no está disponible para {$consolaElegida}."
                     );
                 }
             }

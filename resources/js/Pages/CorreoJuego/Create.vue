@@ -23,10 +23,23 @@ const form = useForm({
     precio_usd: '',
     fecha_nacimiento: '',
     codigo: '',
+    primaria_ps4: 0,
+    primaria_ps5: 0,
+    secundaria: 0,
 });
 
 const selectedOptionMadre = ref("");
 const selectedOption = ref("");
+const consolasJuego = ref({ ps4: true, ps5: true });
+
+const aplicarConsolas = (juego) => {
+    const consola = String(juego?.consola || '').toUpperCase();
+    const ps4 = consola.includes('PS4');
+    const ps5 = consola.includes('PS5');
+    consolasJuego.value = ps4 || ps5 ? { ps4, ps5 } : { ps4: true, ps5: true };
+    if (ps5 && !ps4) form.primaria_ps4 = 2;
+    if (ps4 && !ps5) form.primaria_ps5 = 2;
+};
 
 onMounted(() => {
     if (props.correosMadres.length > 0) {
@@ -268,7 +281,22 @@ const guardar = () => {
                                 v-model="form.juego"
                                 input-id="juego"
                                 :error="form.errors.juego"
+                                @juego-seleccionado="aplicarConsolas"
                             />
+                        </div>
+
+                        <div>
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                                <InputLabel value="Licencias disponibles" />
+                                <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+                                    {{ consolasJuego.ps4 && consolasJuego.ps5 ? 'PS4 y PS5' : (consolasJuego.ps4 ? 'Solo PS4' : 'Solo PS5') }}
+                                </span>
+                            </div>
+                            <div class="grid gap-4 sm:grid-cols-3">
+                                <div v-if="consolasJuego.ps4"><InputLabel for="crear_primaria_ps4" value="Primaria PS4" /><TextInput id="crear_primaria_ps4" v-model="form.primaria_ps4" type="number" min="0" max="2" class="mt-1 block w-full" required /><InputError :message="form.errors.primaria_ps4" class="mt-2" /></div>
+                                <div v-if="consolasJuego.ps5"><InputLabel for="crear_primaria_ps5" value="Primaria PS5" /><TextInput id="crear_primaria_ps5" v-model="form.primaria_ps5" type="number" min="0" max="2" class="mt-1 block w-full" required /><InputError :message="form.errors.primaria_ps5" class="mt-2" /></div>
+                                <div><InputLabel for="crear_secundaria" value="Secundaria" /><TextInput id="crear_secundaria" v-model="form.secundaria" type="number" min="0" max="1" class="mt-1 block w-full" required /><InputError :message="form.errors.secundaria" class="mt-2" /></div>
+                            </div>
                         </div>
 
                         <div>

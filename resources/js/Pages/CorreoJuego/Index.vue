@@ -55,8 +55,19 @@ if (props.mensaje_correo_creado != '') {
 const saldoMadreDisponible = ref(0);
 const correoMadreNombre = ref('');
 const codigosGuardados = ref(0);
+const consolasJuego = ref({ ps4: true, ps5: true });
+
+const aplicarConsolas = (juego) => {
+    const consola = String(juego?.consola || '').toUpperCase();
+    const ps4 = consola.includes('PS4');
+    const ps5 = consola.includes('PS5');
+    consolasJuego.value = ps4 || ps5 ? { ps4, ps5 } : { ps4: true, ps5: true };
+    if (ps5 && !ps4) form.primaria_ps4 = 2;
+    if (ps4 && !ps5) form.primaria_ps5 = 2;
+};
 
 const editarModal = (correo) => {
+    consolasJuego.value = { ps4: true, ps5: true };
     form.id = correo.id;
     form.contrasena = correo.contrasena;
     form.disponible = correo.disponible == 1;
@@ -362,6 +373,7 @@ const formatearFecha = (fecha) => {
                             v-model="form.juego"
                             input-id="juego_editar"
                             :error="form.errors.juego"
+                            @juego-seleccionado="aplicarConsolas"
                         />
                     </div>
 
@@ -466,40 +478,46 @@ const formatearFecha = (fecha) => {
                         <InputError :message="form.errors.codigo" class="mt-2" />
                     </div>
 
-                    <div class="mt-6 flex space-x-6">
-                        <div class="flex flex-col w-1/3">
+                    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div v-if="consolasJuego.ps4" class="flex flex-col">
                             <InputLabel for="primaria_ps4" value="Primaria PS4" />
                             <TextInput
                                 id="primaria_ps4"
                                 ref="primaria_ps4"
                                 v-model="form.primaria_ps4"
                                 type="number"
+                                min="0"
+                                max="2"
                                 class="mt-1 block w-full"
                                 autocomplete="primaria_ps4"
                             />
                             <InputError :message="form.errors.primaria_ps4" class="mt-2" />
                         </div>
 
-                        <div class="flex flex-col w-1/3">
+                        <div v-if="consolasJuego.ps5" class="flex flex-col">
                             <InputLabel for="primaria_ps5" value="Primaria PS5" />
                             <TextInput
                                 id="primaria_ps5"
                                 ref="primaria_ps5"
                                 v-model="form.primaria_ps5"
                                 type="number"
+                                min="0"
+                                max="2"
                                 class="mt-1 block w-full"
                                 autocomplete="primaria_ps5"
                             />
                             <InputError :message="form.errors.primaria_ps5" class="mt-2" />
                         </div>
 
-                        <div class="flex flex-col w-1/3">
+                        <div class="flex flex-col">
                             <InputLabel for="secundaria" value="Secundaria" />
                             <TextInput
                                 id="secundaria"
                                 ref="secundaria"
                                 v-model="form.secundaria"
                                 type="number"
+                                min="0"
+                                max="1"
                                 class="mt-1 block w-full"
                                 autocomplete="secundaria"
                             />

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Movimientos;
+use App\Models\Ventas;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,15 +17,17 @@ class MovimientosController extends Controller
 
     public function index(Request $request)
     {
-        $filtros = array_merge(['periodo' => '30', 'tipo' => '', 'buscar' => ''], $request->validate([
+        $filtros = array_merge(['periodo' => '30', 'tipo' => '', 'buscar' => '', 'incluir_ventas' => false], $request->validate([
             'periodo' => ['nullable', 'in:7,30,90,180,365,todo,personalizado'],
             'desde' => ['nullable', 'date'],
             'hasta' => ['nullable', 'date'],
             'tipo' => ['nullable', 'in:Ingreso,Egreso,Retiro Utilidades'],
             'buscar' => ['nullable', 'string', 'max:150'],
+            'incluir_ventas' => ['nullable', 'boolean'],
         ]));
         [$desde, $hasta] = $this->periodo($filtros);
         $filtros['buscar'] = trim((string) $filtros['buscar']);
+        $filtros['incluir_ventas'] = (bool) $filtros['incluir_ventas'];
 
         $base = Movimientos::query()
             ->when($desde, fn ($query) => $query->where('created_at', '>=', $desde->startOfDay()))
@@ -35,19 +38,46 @@ class MovimientosController extends Controller
                     ->orWhere('observaciones', 'like', "%{$filtros['buscar']}%");
             }));
 
+        $ventasBase = Ventas::query()
+            ->where('estado', 'activa')
+            ->when($desde, fn ($query) => $query->where('created_at', '>=', $desde->startOfDay()))
+            ->when($hasta, fn ($query) => $query->where('created_at', '<=', $hasta->endOfDay()));
+        $ventasIncluidas = $filtros['incluir_ventas'] ? (int) (clone $ventasBase)->sum('precio') : 0;
+        $cantidadVentas = $filtros['incluir_ventas'] ? (clone $ventasBase)->count() : 0;
+
         $datos = (clone $base)->get();
-        $resumen = $this->resumen($datos);
+        $resumen = $this->resumen($datos, $ventasIncluidas, $cantidadVentas);
         $movimientos = (clone $base)->latest()->paginate(15)->appends($request->query());
         $dias = $desde && $hasta ? $desde->diffInDays($hasta) + 1 : null;
         $agruparPorMes = $dias === null || $dias > 90;
         $expresionPeriodo = $agruparPorMes ? "DATE_FORMAT(created_at, '%Y-%m')" : 'DATE(created_at)';
 
-        $evolucion = (clone $base)->reorder()
+        $evolucionMovimientos = (clone $base)->reorder()
             ->selectRaw("{$expresionPeriodo} periodo,
                 SUM(CASE WHEN tipo = 'Ingreso' THEN valor ELSE 0 END) ingresos,
                 SUM(CASE WHEN tipo = 'Egreso' THEN valor ELSE 0 END) egresos,
                 SUM(CASE WHEN tipo = 'Retiro Utilidades' THEN valor ELSE 0 END) retiros")
             ->groupByRaw($expresionPeriodo)->orderBy('periodo')->get();
+        $evolucionVentas = $filtros['incluir_ventas']
+            ? (clone $ventasBase)->reorder()
+                ->selectRaw("{$expresionPeriodo} periodo, SUM(precio) total")
+                ->groupByRaw($expresionPeriodo)->orderBy('periodo')->get()->keyBy('periodo')
+            : collect();
+        $evolucion = $evolucionMovimientos->keyBy('periodo')
+            ->keys()->merge($evolucionVentas->keys())->unique()->sort()->values()
+            ->map(function ($periodo) use ($evolucionMovimientos, $evolucionVentas) {
+                $movimiento = $evolucionMovimientos->firstWhere('periodo', $periodo);
+                $ventas = (int) ($evolucionVentas->get($periodo)?->total ?? 0);
+
+                return [
+                    'periodo' => $periodo,
+                    'ingresos' => (int) ($movimiento?->ingresos ?? 0) + $ventas,
+                    'ingresos_manuales' => (int) ($movimiento?->ingresos ?? 0),
+                    'ventas' => $ventas,
+                    'egresos' => (int) ($movimiento?->egresos ?? 0),
+                    'retiros' => (int) ($movimiento?->retiros ?? 0),
+                ];
+            });
 
         $conceptos = (clone $base)->reorder()->whereIn('tipo', ['Egreso', 'Retiro Utilidades'])
             ->select('descripcion')->selectRaw('SUM(valor) total')
@@ -64,7 +94,17 @@ class MovimientosController extends Controller
                     $subquery->where('descripcion', 'like', "%{$filtros['buscar']}%")
                         ->orWhere('observaciones', 'like', "%{$filtros['buscar']}%");
                 }))->get();
-            $resumenAnterior = $this->resumen($anterior);
+            $ventasAnteriores = $filtros['incluir_ventas']
+                ? (int) Ventas::query()->where('estado', 'activa')
+                    ->whereBetween('created_at', [$anteriorDesde->startOfDay(), $anteriorHasta->endOfDay()])
+                    ->sum('precio')
+                : 0;
+            $cantidadVentasAnteriores = $filtros['incluir_ventas']
+                ? Ventas::query()->where('estado', 'activa')
+                    ->whereBetween('created_at', [$anteriorDesde->startOfDay(), $anteriorHasta->endOfDay()])
+                    ->count()
+                : 0;
+            $resumenAnterior = $this->resumen($anterior, $ventasAnteriores, $cantidadVentasAnteriores);
             $comparacion = [
                 'disponible' => true,
                 'ingresos' => $this->variacion($resumen['ingresos'], $resumenAnterior['ingresos']),
@@ -161,15 +201,19 @@ class MovimientosController extends Controller
         return [$hasta->subDays($dias - 1), $hasta];
     }
 
-    private function resumen($movimientos): array
+    private function resumen($movimientos, int $ventas = 0, int $cantidadVentas = 0): array
     {
-        $ingresos = (int) $movimientos->where('tipo', 'Ingreso')->sum('valor');
+        $ingresosManuales = (int) $movimientos->where('tipo', 'Ingreso')->sum('valor');
+        $ingresos = $ingresosManuales + $ventas;
         $egresos = (int) $movimientos->where('tipo', 'Egreso')->sum('valor');
         $retiros = (int) $movimientos->where('tipo', 'Retiro Utilidades')->sum('valor');
 
         return [
             'movimientos' => $movimientos->count(),
             'ingresos' => $ingresos,
+            'ingresos_manuales' => $ingresosManuales,
+            'ventas' => $ventas,
+            'cantidad_ventas' => $cantidadVentas,
             'egresos' => $egresos,
             'retiros' => $retiros,
             'balance_operativo' => $ingresos - $egresos,

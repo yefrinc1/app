@@ -42,7 +42,9 @@ const buscarJuegos = async () => {
 
         if (data.exact_match) {
             juegoSeleccionado.value = true;
+            imagenJuegoSeleccionado.value = data.exact_game?.url_imagen ?? null;
             sugerencias.value = [];
+            emit('juego-seleccionado', data.exact_game);
         }
     } catch (error) {
         console.error('Error buscando juegos del catálogo:', error);
@@ -58,7 +60,7 @@ const seleccionarJuego = (juego) => {
     juegoValido.value = true;
     juegoSeleccionado.value = true;
 
-    emit('juego-seleccionado', juego.nombre);
+    emit('juego-seleccionado', juego);
 };
 
 watch(model, (valor) => {
